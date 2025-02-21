@@ -1,15 +1,14 @@
 import pandas as pd
-from market.rate.rate_curve import RateCurve, InterpolationType
+from market_data.rate.rate_curve import InterpolationType
+from market_data.market import Market, RateCurveTypes
+import time
 
-rate_curve_data = pd.read_excel("RateCurve_temp.xlsx")
-rate = RateCurve(maturities=rate_curve_data["Matu"],
-                 rates=rate_curve_data["Rate"],
-                 interpolation_type=InterpolationType.LINEAR)
-rate_interpol = rate.get_rate(1.2)
-print(rate_interpol)
+start = time.time()
+market = Market(interpolation_type=InterpolationType.SVENSSON)
+rate_interpol = market.rate_curves[str(RateCurveTypes.RF_US_TREASURY.name)].get_rate(1.2)
+discount = market.rate_curves[str(RateCurveTypes.RF_US_TREASURY.name)].get_discount_factor(1.2)
+print(f"{time.time()-start} sec")
 
-rate = RateCurve(maturities=rate_curve_data["Matu"],
-                 rates=rate_curve_data["Rate"],
-                 interpolation_type=InterpolationType.CUBIC)
-rate_interpol = rate.get_rate(1.2)
 print(rate_interpol)
+print(discount)
+print('end')
