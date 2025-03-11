@@ -1,5 +1,5 @@
 from enum import Enum
-from market_data.rate.interpolator import *
+from market_data.rate_curve.interpolators.abstract_interpolator import *
 
 class InterpolationType(Enum):
     LINEAR = LinearInterpolator
@@ -8,7 +8,7 @@ class InterpolationType(Enum):
     SVENSSON = SvenssonInterpolator
 
 class RateCurveTypes(Enum):
-    # Risk free rate yield curves
+    # Risk free rate_curve yield curves
     RF_US_TREASURY = "RateCurve_temp.xlsx"
     RF_OAT = ""
     # Swap curves

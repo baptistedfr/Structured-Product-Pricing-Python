@@ -1,16 +1,18 @@
-from typing import Dict
+from typing import Dict, List, Union
 import pandas as pd
 from tools import CalendarConvention, InterpolationType, RateCurveTypes
-from market_data.rate.rate_curve import RateCurve
+from market_data.rate_curve.rate_curve import RateCurve
 
 
 class Market:
 
-    def __init__(self, interpolation_type: InterpolationType = InterpolationType.CUBIC,
+    def __init__(self, securities_tickers: Union[str, List[str]],
+                 interpolation_type: InterpolationType = InterpolationType.CUBIC,
                  calendar_convention: CalendarConvention = CalendarConvention.ACT_360):
         self.interpolation_type = interpolation_type
         self.calendar_convention = calendar_convention
         self.rate_curves = self._fetch_yield_curves()
+        self.securities_data = self._fetch_securities_data()
 
     def _fetch_yield_curves(self) -> Dict[str, RateCurve]:
         loaded_curves = {}
@@ -24,3 +26,6 @@ class Market:
             except:
                 pass
         return loaded_curves
+
+    def _fetch_securities_data(self):
+        ...

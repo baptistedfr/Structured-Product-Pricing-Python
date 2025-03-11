@@ -1,5 +1,5 @@
 import pandas as pd
-from market_data.rate.rate_curve import InterpolationType
+from market_data.rate_curve.rate_curve import InterpolationType
 from market_data.market import Market, RateCurveTypes
 import time
 
