@@ -8,7 +8,7 @@ class NelsonSiegelInterpolator(Interpolator):
         self.maturities = np.array(maturities)
         self.rates = np.array(rates)
 
-        self.beta0, self.beta1, self.beta2, self.tau = self._calibrate
+        self.beta0, self.beta1, self.beta2, self.tau = self._calibrate()
 
     @staticmethod
     def _nelson_siegel(t, beta0, beta1, beta2, tau):
@@ -20,3 +20,6 @@ class NelsonSiegelInterpolator(Interpolator):
         params, _ = curve_fit(self._nelson_siegel, self.maturities, self.rates, p0=p0,
                               bounds=([0, -np.inf, -np.inf, 0.01], [np.inf, np.inf, np.inf, np.inf]))
         return params
+
+    def interpolate(self, t):
+        return self._nelson_siegel(t, self.beta0, self.beta1, self.beta2, self.tau)

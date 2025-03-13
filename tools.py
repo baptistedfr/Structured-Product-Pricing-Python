@@ -1,11 +1,13 @@
 from enum import Enum
-from market_data.rate_curve.interpolators.abstract_interpolator import *
+from market_data.rate_curve.interpolators import *
+
 
 class InterpolationType(Enum):
     LINEAR = LinearInterpolator
     CUBIC = CubicInterpolator
     NELSON_SIEGEL = NelsonSiegelInterpolator
     SVENSSON = SvenssonInterpolator
+
 
 class RateCurveTypes(Enum):
     # Risk free rate_curve yield curves

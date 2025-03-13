@@ -13,7 +13,7 @@ class SvenssonInterpolator(Interpolator):
         self.beta0, self.beta1, self.beta2, self.beta3, self.tau1, self.tau2 = self._calibrate()
 
     @staticmethod
-    def _svensson(self, t, beta0, beta1, beta2, beta3, tau1, tau2):
+    def _svensson(t, beta0, beta1, beta2, beta3, tau1, tau2):
         term1 = beta1 * (1 - np.exp(-t / tau1)) / (t / tau1)
         term2 = beta2 * ((1 - np.exp(-t / tau1)) / (t / tau1) - np.exp(-t / tau1))
         term3 = beta3 * ((1 - np.exp(-t / tau2)) / (t / tau2) - np.exp(-t / tau2))
