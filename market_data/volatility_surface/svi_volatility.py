@@ -181,7 +181,7 @@ class SVIVolatilitySurface(VolatilitySurface):
         strikes = np.linspace(spot/2, spot*2, 500)
 
         # Get the smile
-        vol_impl = [self.get_volatility(strike, maturity, spot) for strike in strikes]
+        vol_impl = [self.get_volatility(strike, maturity) for strike in strikes]
 
         # Display the options
         if display_options:
@@ -215,7 +215,7 @@ class SVIVolatilitySurface(VolatilitySurface):
         vol_surface = np.zeros((len(strikes), len(maturities)))
         for i, strike in enumerate(strikes):
             for j, maturity in enumerate(maturities):
-                total_variance = self.get_volatility(strike, maturity, spot)
+                total_variance = self.get_volatility(strike, maturity)
                 vol_surface[i, j] = np.sqrt(total_variance / maturity)
 
         # Plot the surface
