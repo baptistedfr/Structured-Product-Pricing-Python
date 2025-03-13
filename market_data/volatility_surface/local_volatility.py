@@ -1,7 +1,7 @@
 import pandas as pd
 from .abstract_volatility_surface import VolatilitySurface
 
-class LocaleVolatilitySurface(VolatilitySurface):
+class LocalVolatilitySurface(VolatilitySurface):
 
     def calibrate_surface(self, option_data: pd.DataFrame):
         """
@@ -9,7 +9,7 @@ class LocaleVolatilitySurface(VolatilitySurface):
         """
         ...
 
-    def get_volatility(self, strike: float, maturity: float):
+    def get_volatility(self, strike: float, maturity: float, spot: float):
         """
         Get the volatility interpolated by the volatility surface at this specific point (Strike * Maturity).
         Params:

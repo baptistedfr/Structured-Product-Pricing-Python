@@ -1,4 +1,4 @@
-,strike,lastPrice,volume,impliedVolatility,maturity,type
+,Strike,Spot,volume,Implied vol,Maturity,type
 29,225.0,4.4,6265.0,0.1289149609375,24,call
 30,227.5,2.73,15322.0,0.1667563793945313,24,call
 31,230.0,1.54,19339.0,0.18140467041015623,24,call

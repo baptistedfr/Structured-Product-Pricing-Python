@@ -1,14 +1,15 @@
 import pandas as pd
-from market_data.rate_curve.rate_curve import InterpolationType
-from market_data.market import Market, RateCurveTypes
-import time
+import matplotlib.pyplot as plt
+import numpy as np
+from market_data.volatility_surface.svi_volatility import SVIVolatilitySurface
 
-start = time.time()
-market = Market(interpolation_type=InterpolationType.SVENSSON)
-rate_interpol = market.rate_curves[str(RateCurveTypes.RF_US_TREASURY.name)].get_rate(1.2)
-discount = market.rate_curves[str(RateCurveTypes.RF_US_TREASURY.name)].get_discount_factor(1.2)
-print(f"{time.time()-start} sec")
+spot = 230
 
-print(rate_interpol)
-print(discount)
-print('end')
+option_data = pd.read_csv("data/option_data.csv", sep=",")
+option_data["Spot"] = spot
+option_data = option_data[option_data["Maturity"] == 24]
+print(option_data.head())
+
+svi = SVIVolatilitySurface(option_data)
+svi.calibrate_surface()
+svi.svi_params = [-2.99248987e+00,  4.46937635e+01, -1.09724879e-01,  1.04154911e-02, 9.54917171e-02]

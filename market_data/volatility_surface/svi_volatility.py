@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from .abstract_volatility_surface import VolatilitySurface
 
@@ -32,8 +33,11 @@ class SVIVolatilitySurface(VolatilitySurface):
         - sigma : ATM smile curvature
     """
 
-    def __init__(self):
+
+    def __init__(self, option_data: pd.DataFrame):
         self.svi_params = None
+        self.option_data = option_data
+
 
     @staticmethod
     def svi_total_variance(k: float, svi_params: np.ndarray) -> float:
@@ -70,12 +74,12 @@ class SVIVolatilitySurface(VolatilitySurface):
         market_total_implied_variance = (market_implied_vol ** 2) * maturities
 
         # SVI total implied variance
-        SVI_total_implied_variance = np.array([self.svi_total_variance(np.log(k / 100), svi_params) for k in log_moneyness])
+        SVI_total_implied_variance = np.array([self.svi_total_variance(np.log(k / 215), svi_params) for k in log_moneyness])
         
         return np.sum((SVI_total_implied_variance - market_total_implied_variance) ** 2)
 
 
-    def calibrate_surface(self, option_data: pd.DataFrame) -> None:
+    def calibrate_surface(self) -> None:
         """
         Calibrate the volatility surface with the option data by minimizing the fit error of the curve.
 
@@ -84,20 +88,24 @@ class SVIVolatilitySurface(VolatilitySurface):
 
         Market option data has to contain at least 3 columns : 'Log Moneyness', 'Maturities' & 'Implied vol'
         """
-        required_columns = {'Log Moneyness', 'Maturities', 'Implied vol'}
+        option_data = self.option_data
+
+        required_columns = {'Strike', 'Spot', 'Maturity', 'Implied vol'}
         if not required_columns.issubset(option_data.columns):
             raise ValueError(f"DataFrame must contain the following columns: {required_columns}")
 
         initial_params = np.array([-0.0410, 0.1331, 0.3586, 0.3060, 0.4153])
+
+        option_data["Log Moneyness"] = np.log(option_data['Strike']/ option_data['Spot'])
         result = minimize(self.cost_function_svi, initial_params, method="Nelder-Mead",
                           args=(np.array(option_data["Log Moneyness"]),
-                                np.array(option_data["Maturities"]),
+                                np.array(option_data["Maturity"]),
                                 np.array(option_data["Implied vol"])))
         
         self.svi_params = result.x
 
 
-    def get_volatility(self, strike: float, maturity: float):
+    def get_volatility(self, strike: float, maturity: float, spot: float) -> float:
         """
         Get the volatility interpolated by the volatility surface at this specific point (Strike * Maturity).
         Params:
@@ -107,4 +115,75 @@ class SVIVolatilitySurface(VolatilitySurface):
         Returns:
             float: volatility at this point of the surface
         """
-        ...
+        if self.svi_params is None:
+            raise Exception("SVI surface not calibrated yet !")
+
+        log_moneyness = np.log(strike / spot)
+        total_variance = self.svi_total_variance(log_moneyness, self.svi_params)
+        return np.sqrt(total_variance / maturity)
+
+
+    def display_smile(self, maturity: float, display_options: bool = True) -> None:
+        """
+        Displays the SVI volatility smile for a given maturity.
+
+        Parameters:
+            maturity (float): maturity for which we display the smile
+            display_options (bool): display the options on the smile plot or not
+        """
+        if self.svi_params is None:
+            raise Exception("SVI surface not calibrated yet !")
+
+        # Extract option data at the given maturity
+        option_data = self.option_data[self.option_data["Maturity"] == maturity]
+        spot = self.option_data["Spot"].values[0]
+        strikes = np.linspace(spot/2, spot*2, 500)
+
+        # Get the smile
+        vol_impl = [self.get_volatility(strike, maturity, spot) for strike in strikes]
+
+        # Display the options
+        if display_options:
+            sub_calls = option_data[option_data["Type"] == "call"]
+            sub_puts = option_data[option_data["Type"] == "put"]
+            plt.scatter(sub_calls['Strike'], sub_calls['Implied vol'], color="royalblue", label='Calls')
+            plt.scatter(sub_puts['Strike'], sub_puts['Implied vol'], color="crimson", label='Puts')
+
+        # Display the smile
+        plt.plot(strikes, vol_impl, label='SVI', color="teal")
+        plt.xlabel('Strike')
+        plt.grid(True)
+        plt.ylabel('Implied Volatility')
+        plt.title('Implied Volatility Smile')
+        plt.show()
+
+
+    def display_surface(self) -> None:
+        """
+        Displays the SVI volatility surface.
+        """
+        if self.svi_params is None:
+            raise Exception("SVI surface not calibrated yet !")
+
+        # Option data
+        spot = self.option_data["Spot"].values[0]
+        strikes = np.linspace(spot/2, spot*2, 50)
+        maturities = np.linspace(min(self.option_data["Maturity"]), max(self.option_data["Maturity"]), 50)
+
+        # Get the surface
+        vol_surface = np.zeros((len(strikes), len(maturities)))
+        for i, strike in enumerate(strikes):
+            for j, maturity in enumerate(maturities):
+                total_variance = self.get_volatility(strike, maturity, spot)
+                vol_surface[i, j] = np.sqrt(total_variance / maturity)
+
+        # Plot the surface
+        X, Y = np.meshgrid(strikes, maturities)
+        fig = plt.figure(figsize=(10, 7))
+        ax = fig.add_subplot(111, projection='3d')
+        ax.plot_surface(Y, X, vol_surface, cmap='plasma')
+        ax.set_xlabel('Strike')
+        ax.set_ylabel('Maturity')
+        ax.set_zlabel('Implied Volatility')
+        ax.set_title('Implied Volatility Surface')
+        plt.show()
