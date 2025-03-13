@@ -5,7 +5,6 @@ from tools import InterpolationType
 from market_data.volatility_surface.svi_volatility import SVIVolatilitySurface
 from market_data.rate_curve.rate_curve import RateCurve
 
-
 # Get market data
 spot = 230
 option_data = pd.read_excel("data/option_data.xlsx")
@@ -18,9 +17,4 @@ curve = RateCurve(rate_data, InterpolationType.SVENSSON)
 # Instantiate and calibrate a rate curve
 svi = SVIVolatilitySurface(option_data=option_data, rate_curve=curve)
 svi.calibrate_surface()
-# svi.svi_params = [-2.99248987e+00,  4.46937635e+01, -1.09724879e-01,  1.04154911e-02, 9.54917171e-02]
-print(svi.svi_params)
-
-# Show vol surface
-svi.display_smile(24)
-svi.display_surface()
+print(svi.get_volatility(strike=200, maturity=100))

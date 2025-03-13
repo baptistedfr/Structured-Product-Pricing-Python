@@ -43,6 +43,7 @@ class SVIVolatilitySurface(VolatilitySurface):
             option_data (pd.DataFrame): option market data, must contain the following columns : 'Strike', 'Spot', 'Maturity', 'Implied vol'
             rate_curve (RateCurve): rate curve object already calibrated
         """
+        self.spot = None
         self.svi_params = None
         self.option_data = option_data
         self.rate_curve = rate_curve
@@ -142,9 +143,10 @@ class SVIVolatilitySurface(VolatilitySurface):
                                 vega))
         
         self.svi_params = result.x
+        self.spot = option_data['Spot'].values[0]
 
 
-    def get_volatility(self, strike: float, maturity: float, spot: float) -> float:
+    def get_volatility(self, strike: float, maturity: float) -> float:
         """
         Get the volatility interpolated by the volatility surface at this specific point (Strike * Maturity).
         Params:
@@ -157,7 +159,7 @@ class SVIVolatilitySurface(VolatilitySurface):
         if self.svi_params is None:
             raise Exception("SVI surface not calibrated yet !")
 
-        log_moneyness = np.log(strike / spot)
+        log_moneyness = np.log(strike / self.spot)
         total_variance = self.svi_total_variance(log_moneyness, self.svi_params)
         return np.sqrt(total_variance / maturity)
 
