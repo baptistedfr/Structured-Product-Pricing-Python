@@ -13,8 +13,9 @@ rate_data = pd.read_excel("data/yield_curves/RateCurve_temp.xlsx")
 
 # Instantiate a rate curve
 curve = RateCurve(rate_data, InterpolationType.SVENSSON)
+curve.display_curve()
 
-# Instantiate and calibrate a rate curve
-svi = SVIVolatilitySurface(option_data=option_data, rate_curve=curve)
-svi.calibrate_surface()
-print(svi.get_volatility(strike=200, maturity=100))
+# # Instantiate and calibrate a rate curve
+# svi = SVIVolatilitySurface(option_data=option_data, rate_curve=curve)
+# svi.calibrate_surface()
+# print(svi.get_volatility(strike=200, maturity=100))

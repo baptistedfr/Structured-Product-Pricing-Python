@@ -11,7 +11,7 @@ class VolatilitySurface(ABC):
         ...
 
     @abstractmethod
-    def get_volatility(self, strike: float, maturity: float, spot: float):
+    def get_volatility(self, strike: float, maturity: float):
         """
         Get the volatility interpolated by the volatility surface at this specific point (Strike * Maturity).
         Params:

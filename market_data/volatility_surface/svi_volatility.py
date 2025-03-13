@@ -36,7 +36,6 @@ class SVIVolatilitySurface(VolatilitySurface):
         - sigma : ATM smile curvature
     """
 
-
     def __init__(self, option_data: pd.DataFrame, rate_curve: RateCurve):
         """
         Parameters:
@@ -47,7 +46,6 @@ class SVIVolatilitySurface(VolatilitySurface):
         self.svi_params = None
         self.option_data = option_data
         self.rate_curve = rate_curve
-
 
     @staticmethod
     def svi_total_variance(k: np.ndarray[float], svi_params: np.ndarray[float]) -> float:
@@ -63,7 +61,6 @@ class SVIVolatilitySurface(VolatilitySurface):
         """
         a, b, rho, m, sigma = svi_params
         return a + b * (rho * (k - m) + np.sqrt((k - m) ** 2 + sigma ** 2))
-
 
     def compute_weighting_vega(self, spot: float, maturities: np.ndarray[float],
                                vols: np.ndarray[float], strikes: np.ndarray[float]) -> np.ndarray[float]:
@@ -87,7 +84,6 @@ class SVIVolatilitySurface(VolatilitySurface):
 
         d1 = (np.log(spot / strikes) + (r + 0.5 * vols ** 2) * maturities) / (vols * np.sqrt(maturities))
         return spot * norm.pdf(d1) * np.sqrt(maturities)
-
 
     def cost_function_svi(self, svi_params: np.ndarray[float], log_moneyness : np.ndarray[float],
                           maturities: np.ndarray[float], market_implied_vol: np.ndarray[float],
@@ -114,7 +110,6 @@ class SVIVolatilitySurface(VolatilitySurface):
         SVI_total_variance = np.array(self.svi_total_variance(log_moneyness, svi_params))
 
         return float(np.mean(vega * (SVI_total_variance - market_total_variance) ** 2))
-
 
     def calibrate_surface(self) -> None:
         """
@@ -145,7 +140,6 @@ class SVIVolatilitySurface(VolatilitySurface):
         self.svi_params = result.x
         self.spot = option_data['Spot'].values[0]
 
-
     def get_volatility(self, strike: float, maturity: float) -> float:
         """
         Get the volatility interpolated by the volatility surface at this specific point (Strike * Maturity).
@@ -162,7 +156,6 @@ class SVIVolatilitySurface(VolatilitySurface):
         log_moneyness = np.log(strike / self.spot)
         total_variance = self.svi_total_variance(log_moneyness, self.svi_params)
         return np.sqrt(total_variance / maturity)
-
 
     def display_smile(self, maturity: float, display_options: bool = True) -> None:
         """
@@ -196,8 +189,8 @@ class SVIVolatilitySurface(VolatilitySurface):
         plt.grid(True)
         plt.ylabel('Implied Volatility')
         plt.title('Implied Volatility Smile')
+        plt.legend()
         plt.show()
-
 
     def display_surface(self) -> None:
         """
