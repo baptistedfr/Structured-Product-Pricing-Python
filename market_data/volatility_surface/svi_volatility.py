@@ -1,8 +1,11 @@
 import numpy as np
 import pandas as pd
+from scipy.stats import norm
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
+from market_data.rate_curve.rate_curve import RateCurve
 from .abstract_volatility_surface import VolatilitySurface
+
 
 class SVIVolatilitySurface(VolatilitySurface):
     """
@@ -34,19 +37,25 @@ class SVIVolatilitySurface(VolatilitySurface):
     """
 
 
-    def __init__(self, option_data: pd.DataFrame):
+    def __init__(self, option_data: pd.DataFrame, rate_curve: RateCurve):
+        """
+        Parameters:
+            option_data (pd.DataFrame): option market data, must contain the following columns : 'Strike', 'Spot', 'Maturity', 'Implied vol'
+            rate_curve (RateCurve): rate curve object already calibrated
+        """
         self.svi_params = None
         self.option_data = option_data
+        self.rate_curve = rate_curve
 
 
     @staticmethod
-    def svi_total_variance(k: float, svi_params: np.ndarray) -> float:
+    def svi_total_variance(k: np.ndarray[float], svi_params: np.ndarray[float]) -> float:
         """
         Defines the SVI total implied variance w(k).
 
         Parameters:
-            k (float): log moneyness
-            svi_params (np.ndarray): five parameters of the SVI [a, b, p, m, sigma]
+            k (np.ndarray[float]): log moneyness
+            svi_params (np.ndarray[float]): five parameters of the SVI [a, b, p, m, sigma]
 
         Returns:
             float: total implied variance for this log moneyness level
@@ -55,28 +64,55 @@ class SVIVolatilitySurface(VolatilitySurface):
         return a + b * (rho * (k - m) + np.sqrt((k - m) ** 2 + sigma ** 2))
 
 
-    def cost_function_svi(self, svi_params: np.ndarray, log_moneyness : np.ndarray, maturities: np.ndarray, market_implied_vol: np.ndarray):
+    def compute_weighting_vega(self, spot: float, maturities: np.ndarray[float],
+                               vols: np.ndarray[float], strikes: np.ndarray[float]) -> np.ndarray[float]:
+        """
+        Compute vegas to weight the cost function in order to fit better the ATM options.
+
+        Parameters:
+            spot (np.ndarray[float]): market data spot
+            maturities (np.ndarray[float]): market data maturities
+            vols (np.ndarray[float]): market data implied volatility from the option data historic
+            strikes (np.ndarray[float]): market data strikes
+
+        Returns:
+            np.ndarray[float]: options vega
+        """
+        # Interpol rates for the maturities
+        try:
+            r = np.array([self.rate_curve.get_rate(t) for t in maturities])/100
+        except Exception:
+            r = 0
+
+        d1 = (np.log(spot / strikes) + (r + 0.5 * vols ** 2) * maturities) / (vols * np.sqrt(maturities))
+        return spot * norm.pdf(d1) * np.sqrt(maturities)
+
+
+    def cost_function_svi(self, svi_params: np.ndarray[float], log_moneyness : np.ndarray[float],
+                          maturities: np.ndarray[float], market_implied_vol: np.ndarray[float],
+                          vega: np.ndarray[float]) -> float:
         """
         Defines the MSE cost function for the optimization problem.
         We want to minimize the SVI fitting error :
             i.e. the gap between SVI total implied variance and market data total implied variance.
 
         Parameters:
-            svi_params (np.ndarray): given set of svi parameters [a, b, p, m, sigma]
-            log_moneyness (np.ndarray): market data log moneyness
-            maturities (np.ndarray): market data maturities
-            market_implied_vol (np.ndarray): market data implied volatility from the option data historic
+            svi_params (np.ndarray[float]): given set of svi parameters [a, b, p, m, sigma]
+            log_moneyness (np.ndarray[float]): market data log moneyness
+            maturities (np.ndarray[float]): market data maturities
+            market_implied_vol (np.ndarray[float]): market data implied volatility from the option data historic
+            vega (np.ndarray[float]): vega to weight the MSE by putting more importance on ATM options
 
         Returns:
             float: Mean Squared Error between market data and SVI total implied variance
         """
         # Conversion from market data implied volatility to market data total implied variance
-        market_total_implied_variance = (market_implied_vol ** 2) * maturities
+        market_total_variance = (market_implied_vol ** 2) * maturities
 
         # SVI total implied variance
-        SVI_total_implied_variance = np.array([self.svi_total_variance(np.log(k / 215), svi_params) for k in log_moneyness])
-        
-        return np.sum((SVI_total_implied_variance - market_total_implied_variance) ** 2)
+        SVI_total_variance = np.array(self.svi_total_variance(log_moneyness, svi_params))
+
+        return float(np.mean(vega * (SVI_total_variance - market_total_variance) ** 2))
 
 
     def calibrate_surface(self) -> None:
@@ -84,9 +120,8 @@ class SVIVolatilitySurface(VolatilitySurface):
         Calibrate the volatility surface with the option data by minimizing the fit error of the curve.
 
         We use the Nelder-Mead optimizer of scipy optimisation module.
-        The initial parameters are those found by Axel Vogt (see Arbitrage-free SVI volatility surfaces - Gatheral 2024)
 
-        Market option data has to contain at least 3 columns : 'Log Moneyness', 'Maturities' & 'Implied vol'
+        Market option data has to contain at least 4 columns : 'Log Moneyness', 'Spot', 'Maturities' & 'Implied vol'
         """
         option_data = self.option_data
 
@@ -94,13 +129,17 @@ class SVIVolatilitySurface(VolatilitySurface):
         if not required_columns.issubset(option_data.columns):
             raise ValueError(f"DataFrame must contain the following columns: {required_columns}")
 
-        initial_params = np.array([-0.0410, 0.1331, 0.3586, 0.3060, 0.4153])
-
+        initial_params = np.array([0, 0, 0, 0, 0])
         option_data["Log Moneyness"] = np.log(option_data['Strike']/ option_data['Spot'])
-        result = minimize(self.cost_function_svi, initial_params, method="Nelder-Mead",
+
+        vega = self.compute_weighting_vega(option_data['Spot'].values[0],
+                                           option_data["Maturity"], option_data["Implied vol"], option_data['Strike'])
+
+        result = minimize(self.cost_function_svi, initial_params, method="BFGS",
                           args=(np.array(option_data["Log Moneyness"]),
                                 np.array(option_data["Maturity"]),
-                                np.array(option_data["Implied vol"])))
+                                np.array(option_data["Implied vol"]),
+                                vega))
         
         self.svi_params = result.x
 
