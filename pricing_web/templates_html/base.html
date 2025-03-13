@@ -1,0 +1,44 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Titre du Site{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <!-- Ajoutez ici d'autres liens vers des feuilles de style ou des scripts si nécessaire -->
+</head>
+<body>
+    <!-- Barre de navigation -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="logo">
+                <a href="{% url 'home' %}">
+                    <img src="{% static 'images/logo.png' %}" alt="Logo" class="logo-img">
+                </a>
+            </div>
+            <ul class="nav-links">
+                <li><a href="{% url 'home' %}">Accueil</a></li>
+                <li><a href="">Pricing de produits structurés</a></li>
+                <li><a href="">Visualisations</a></li>
+                <li><a href="{% url 'about' %}">À propos</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    
+
+    <!-- Contenu principal -->
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Pied de page -->
+    <footer>
+        <p>&copy; 2025 Nom de Votre Site. Tous droits réservés.</p>
+    </footer>
+
+    <!-- Ajoutez ici des scripts JavaScript si nécessaire -->
+</body>
+</html>

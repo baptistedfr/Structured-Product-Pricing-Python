@@ -1,0 +1,49 @@
+/* Conteneur principal de la barre de navigation */
+.navbar {
+    background-color: #003366; /* Bleu marine */
+    padding: 10px 0;
+    width: 100%;
+}
+
+/* Conteneur interne pour aligner le contenu */
+.navbar-container {
+    display: flex;
+    justify-content: center; /* Centre les éléments horizontalement */
+    align-items: center;
+    width: 100%;
+}
+
+/* Logo */
+.logo {
+    position: absolute;
+    left: 20px; /* Ajustez la distance du logo par rapport au bord gauche */
+}
+
+.logo-img {
+    width: 60px; /* Ajustez la taille selon vos besoins */
+    height: auto;
+}
+
+/* Liste des liens de navigation */
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 20px; /* Espace entre les liens */
+    margin: 0;
+    padding: 0;
+}
+
+/* Liens individuels */
+.nav-links a {
+    color: white;
+    text-decoration: none;
+    font-size: 15px;
+    padding: 5px 10px;
+    display: block;
+}
+
+.nav-links a:hover {
+    background-color: #ddd;
+    color: black;
+    border-radius: 5px;
+}
