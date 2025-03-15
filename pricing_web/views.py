@@ -8,3 +8,6 @@ def home_page(request):
 
 def about_page(request):
     return render(request, 'about.html')
+
+def visualisation_view(request):
+    return render(request, 'visualisation.html')
