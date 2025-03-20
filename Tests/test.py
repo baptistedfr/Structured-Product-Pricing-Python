@@ -54,7 +54,7 @@ class TestBarrierOptions(unittest.TestCase):
         option = DownAndOutPutOption(self.maturity, self.strike, self.barrier_down)
         self.assertEqual(option.payoff(self.path_below_barrier_down), max(0, self.strike - self.path_below_barrier_down[-1]))
         self.assertEqual(option.payoff(self.path_above_barrier_down), 0)
-        
+
 class TestCallPutOptions(unittest.TestCase):
     def setUp(self):
         # Initialisation des paramètres communs
@@ -83,6 +83,83 @@ class TestCallPutOptions(unittest.TestCase):
         option = BinaryPutOption(self.maturity, self.strike, self.coupon)
         self.assertEqual(option.payoff(self.path_above_strike), 0)  # Payoff = 0 si le prix final est au-dessus du strike
         self.assertEqual(option.payoff(self.path_below_strike), self.coupon)  # Payoff = 1 sinon
+
+class TestOptionStrategies(unittest.TestCase):
+    def setUp(self):
+        # Initialisation des paramètres communs
+        self.maturity = 1.0
+        self.strike = 100
+        self.strike_low = 90
+        self.strike_high = 110
+        self.strike_mid1 = 95
+        self.strike_mid2 = 105
+        self.maturity_near = 0.5
+        self.maturity_far = 1.5
+        self.path = np.array([90, 95, 100, 105])  # Exemple de chemin
+
+    def test_straddle(self):
+        strategy = Straddle(self.maturity, self.strike, position_call=True, position_put=True)
+        call_payoff = max(0, self.path[-1] - self.strike)  # Long call
+        put_payoff = max(0, self.strike - self.path[-1])  # Long put
+        expected_payoff = call_payoff + put_payoff
+        self.assertEqual(strategy.payoff(self.path), expected_payoff)
+
+    def test_strangle(self):
+        strategy = Strangle(self.maturity, self.strike_high, self.strike_low, position_call=True, position_put=True)
+        call_payoff = max(0, self.path[-1] - self.strike_high)  # Long call
+        put_payoff = max(0, self.strike_low - self.path[-1])  # Long put
+        expected_payoff = call_payoff + put_payoff
+        self.assertEqual(strategy.payoff(self.path), expected_payoff)
+
+    def test_bull_spread(self):
+        strategy = BullSpread(self.maturity, self.strike_low, self.strike_high, position_low=True, position_high=False)
+        call_low_payoff = max(0, self.path[-1] - self.strike_low)  # Long call
+        call_high_payoff = -max(0, self.path[-1] - self.strike_high)  # Short call
+        expected_payoff = call_low_payoff + call_high_payoff
+        self.assertEqual(strategy.payoff(self.path), expected_payoff)
+
+    def test_bear_spread(self):
+        strategy = BearSpread(self.maturity, self.strike_low, self.strike_high, position_low=True, position_high=False)
+        put_low_payoff = max(0, self.strike_low - self.path[-1])  # Long put
+        put_high_payoff = -max(0, self.strike_high - self.path[-1])  # Short put
+        expected_payoff = put_low_payoff + put_high_payoff
+        self.assertEqual(strategy.payoff(self.path), expected_payoff)
+
+    def test_butterfly_spread(self):
+        strategy = ButterflySpread(self.maturity, self.strike_low, self.strike_mid1, self.strike_high,
+                                    position_low=True, position_mid=False, position_high=True)
+        call_low_payoff = max(0, self.path[-1] - self.strike_low)  # Long call
+        call_mid1_payoff = -max(0, self.path[-1] - self.strike_mid1)  # Short call
+        call_mid2_payoff = -max(0, self.path[-1] - self.strike_mid1)  # Short call
+        call_high_payoff = max(0, self.path[-1] - self.strike_high)  # Long call
+        expected_payoff = call_low_payoff + call_mid1_payoff + call_mid2_payoff + call_high_payoff
+        self.assertEqual(strategy.payoff(self.path), expected_payoff)
+
+    def test_condor_spread(self):
+        strategy = CondorSpread(self.maturity, self.strike_low, self.strike_mid1, self.strike_mid2, self.strike_high,
+                                 position_low=True, position_mid1=False, position_mid2=False, position_high=True)
+        call_low_payoff = max(0, self.path[-1] - self.strike_low)  # Long call
+        call_mid1_payoff = -max(0, self.path[-1] - self.strike_mid1)  # Short call
+        call_mid2_payoff = -max(0, self.path[-1] - self.strike_mid2)  # Short call
+        call_high_payoff = max(0, self.path[-1] - self.strike_high)  # Long call
+        expected_payoff = call_low_payoff + call_mid1_payoff + call_mid2_payoff + call_high_payoff
+        self.assertEqual(strategy.payoff(self.path), expected_payoff)
+
+    def test_calendar_spread(self):
+        strategy = CalendarSpread(self.strike, self.maturity_near, self.maturity_far,
+                                   position_near=False, position_far=True)
+        call_near_payoff = -max(0, self.path[-1] - self.strike)  # Short call
+        call_far_payoff = max(0, self.path[-1] - self.strike)  # Long call
+        expected_payoff = call_near_payoff + call_far_payoff
+        self.assertEqual(strategy.payoff(self.path), expected_payoff)
+
+    def test_collar(self):
+        strategy = Collar(self.maturity, self.strike_high, self.strike_low,
+                          position_call=False, position_put=True)
+        call_payoff = -max(0, self.path[-1] - self.strike_high)  # Short call
+        put_payoff = max(0, self.strike_low - self.path[-1])  # Long put
+        expected_payoff = call_payoff + put_payoff
+        self.assertEqual(strategy.payoff(self.path), expected_payoff)
 
 if __name__ == "__main__":
     unittest.main()

@@ -15,3 +15,5 @@ from .vanilla_options import (
 from .binary_options import (
     BinaryCallOption,
     BinaryPutOption)
+
+from .abstract_option import AbstractOption
