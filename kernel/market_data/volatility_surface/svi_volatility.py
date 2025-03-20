@@ -42,7 +42,7 @@ class SVIVolatilitySurface(VolatilitySurface):
             option_data (pd.DataFrame): option market data, must contain the following columns : 'Strike', 'Spot', 'Maturity', 'Implied vol'
             rate_curve (RateCurve): rate curve object already calibrated
         """
-        super().__init__(option_data)
+        self.option_data = option_data
         self.spot = None
         self.svi_params = None
         self.rate_curve = rate_curve

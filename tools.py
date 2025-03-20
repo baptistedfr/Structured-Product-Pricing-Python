@@ -1,6 +1,6 @@
 from enum import Enum
 from kernel.market_data.rate_curve.interpolators import *
-
+# from kernel.market_data.volatility_surface import *
 
 class InterpolationType(Enum):
     LINEAR = LinearInterpolator
@@ -9,7 +9,7 @@ class InterpolationType(Enum):
     SVENSSON = SvenssonInterpolator
 
 
-class RateCurveTypes(Enum):
+class RateCurveType(Enum):
     # Risk free rate_curve yield curves
     RF_US_TREASURY = "RateCurve_temp.xlsx"
     RF_OAT = ""
@@ -23,6 +23,9 @@ class RateCurveTypes(Enum):
     CREDIT_IG = ""
     CREDIT_HY = ""
 
+# class VolatilitySurfaceType(Enum):
+#     LOCAL = SVIVolatilitySurface
+#     SVI = LocalVolatilitySurface
 
 class CalendarConvention(Enum):
 

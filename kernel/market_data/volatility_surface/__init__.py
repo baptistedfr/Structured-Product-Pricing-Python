@@ -1,5 +1,5 @@
 from .abstract_volatility_surface import VolatilitySurface
-from .svi_volatility import SVIVolatilitySurface
 from .local_volatility import LocalVolatilitySurface
+from .svi_volatility import SVIVolatilitySurface
 
-__all__ = ["VolatilitySurface", "SVIVolatilitySurface", "LocalVolatilitySurface"]
+all = ["VolatilitySurface", "LocalVolatilitySurface", "SVIVolatilitySurface"]

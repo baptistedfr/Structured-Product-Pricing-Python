@@ -81,19 +81,6 @@ class RateCurve:
         """
         return self.interpolator.interpolate(maturity)
 
-    def get_discount_factor(self, maturity: float) -> float:
-        """
-        Computes the discount factor for a given maturity using the interpolated yield.
-
-        Parameters:
-            maturity (float): Desired maturity in years.
-
-        Returns:
-            float: Discount factor
-        """
-        rate = self.get_rate(maturity)
-        return np.exp(-rate * maturity)
-
     def display_curve(self) -> None:
         """
         Plots the yield curve based on market data and the chosen interpolated yield.

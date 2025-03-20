@@ -1,12 +1,15 @@
 import pandas as pd
 from abc import ABC, abstractmethod
+from kernel.market_data.rate_curve.rate_curve import RateCurve
+
 
 class VolatilitySurface(ABC):
 
-    def __init__(self, option_data: pd.DataFrame):
+    def __init__(self, option_data: pd.DataFrame, rate_curve: RateCurve):
         """
         Parameters:
             option_data (pd.DataFrame): option market data, must contain the following columns : 'Strike', 'Price', 'Maturity'
+            rate_curve (RateCurve): rate curve object already calibrated
         """
         self.option_data = option_data
 

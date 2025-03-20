@@ -1,18 +1,21 @@
 import numpy as np
 import pandas as pd
-from scipy.interpolate import griddata, interp2d
+from scipy.interpolate import griddata
 from .abstract_volatility_surface import VolatilitySurface
+from kernel.market_data.rate_curve.rate_curve import RateCurve
+
 
 class LocalVolatilitySurface(VolatilitySurface):
     """
     """
 
-    def __init__(self, option_data: pd.DataFrame):
+    def __init__(self, option_data: pd.DataFrame, rate_curve: RateCurve):
         """
         Parameters:
             option_data (pd.DataFrame): option market data, must contain the following columns : 'Strike', 'Price', 'Maturity'
+            rate_curve (RateCurve): rate curve object already calibrated
         """
-        super().__init__(option_data)
+        self.option_data = option_data
         self.maturities_grid = None
         self.strikes_grid = None
         self.price_surface = None
