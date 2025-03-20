@@ -5,7 +5,7 @@ class AbstractMultiAssetOption(AbstractOption):
     """
     Classe abstraite pour les options avec plusieurs sous-jacents.
     """
-    def __init__(self, maturity, strike, weights=None):
+    def __init__(self, maturity : float, strike : float, weights:np.ndarray=None):
         """
         Initialise une option multi-sous-jacent.
 

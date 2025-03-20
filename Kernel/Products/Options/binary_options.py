@@ -5,7 +5,7 @@ class AbstractBinaryOption(AbstractOption):
     """
     Classe abstraite représentant les différentes options binaires.
     """
-    def __init__(self, maturity, strike, coupon):
+    def __init__(self, maturity : float, strike : float, coupon : float):
         """
         Initialise une option binaire avec une maturity, un prix d'exercice et un coupon.   "
         """

@@ -6,8 +6,8 @@ class Straddle(AbstractOptionStrategy):
     """
     Représente une stratégie de straddle.
     """
-    def __init__(self, maturity, strike, 
-                 position_call=True, position_put=True):
+    def __init__(self, maturity: float, strike: float, 
+                 position_call: bool = True, position_put: bool = True):
         """
         Initialise une stratégie de straddle.
 
@@ -24,8 +24,8 @@ class Strangle(AbstractOptionStrategy):
     """
     Représente une stratégie de strangle.
     """
-    def __init__(self, maturity, strike_call, strike_put, 
-                 position_call=True, position_put=True):
+    def __init__(self, maturity: float, strike_call: float, strike_put: float, 
+                 position_call: bool = True, position_put: bool = True):
         """
         Initialise une stratégie de strangle.
 
@@ -43,8 +43,8 @@ class BullSpread(AbstractOptionStrategy):
     """
     Représente une stratégie de bull spread.
     """
-    def __init__(self, maturity, strike_low, strike_high, 
-                 position_low=True, position_high=False):
+    def __init__(self, maturity: float, strike_low: float, strike_high: float, 
+                 position_low: bool = True, position_high: bool = False):
         """
         Initialise une stratégie de bull spread.
 
@@ -62,8 +62,8 @@ class BearSpread(AbstractOptionStrategy):
     """
     Représente une stratégie de bear spread.
     """
-    def __init__(self, maturity, strike_low, strike_high, 
-                 position_low=True, position_high=False):
+    def __init__(self, maturity: float, strike_low: float, strike_high: float, 
+                 position_low: bool = True, position_high: bool = False):
         """
         Initialise une stratégie de bear spread.
 
@@ -81,8 +81,8 @@ class ButterflySpread(AbstractOptionStrategy):
     """
     Représente une stratégie de butterfly spread.
     """
-    def __init__(self, maturity, strike_low, strike_mid, strike_high, 
-                 position_low=True, position_mid=False, position_high=True):
+    def __init__(self, maturity: float, strike_low: float, strike_mid: float, strike_high: float, 
+                 position_low: bool = True, position_mid: bool = False, position_high: bool = True):
         """
         Initialise une stratégie de butterfly spread.
 
@@ -109,8 +109,8 @@ class CondorSpread(AbstractOptionStrategy):
     """
     Représente une stratégie de condor spread.
     """
-    def __init__(self, maturity, strike_low, strike_mid1, strike_mid2, strike_high, 
-                 position_low=True, position_mid1=False, position_mid2=False, position_high=True):
+    def __init__(self, maturity: float, strike_low: float, strike_mid1: float, strike_mid2: float, strike_high: float, 
+                 position_low: bool = True, position_mid1: bool = False, position_mid2: bool = False, position_high: bool = True):
         """
         Initialise une stratégie de condor spread.
 
@@ -139,8 +139,8 @@ class CalendarSpread(AbstractOptionStrategy):
     """
     Représente une stratégie de calendar spread.
     """
-    def __init__(self, strike, maturity_near, maturity_far, 
-                 position_near=False, position_far=True):
+    def __init__(self, strike: float, maturity_near: float, maturity_far: float, 
+                 position_near: bool = False, position_far: bool = True):
         """
         Initialise une stratégie de calendar spread.
 
@@ -159,8 +159,8 @@ class Collar(AbstractOptionStrategy):
     """
     Représente une stratégie de collar.
     """
-    def __init__(self, maturity, strike_call, strike_put, 
-                 position_call=False, position_put=True):
+    def __init__(self, maturity: float, strike_call: float, strike_put: float, 
+                 position_call: bool = False, position_put: bool = True):
         """
         Initialise une stratégie de collar.
 

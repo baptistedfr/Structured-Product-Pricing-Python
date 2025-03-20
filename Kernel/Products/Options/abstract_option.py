@@ -5,7 +5,7 @@ class AbstractOption(AbstractDerive):
     """
     Classe abstraite représentant les différentes options.
     """
-    def __init__(self, maturity, strike = None):
+    def __init__(self, maturity: float, strike: float = None):
         if maturity <= 0:
             raise ValueError("La maturité doit être positive.")
         self.maturity = maturity

@@ -5,7 +5,7 @@ class AbstractBarrierOption(AbstractOption):
     """
     Classe abstraite représentant les différentes options à barrière.
     """
-    def __init__(self, maturity, strike, barrier):
+    def __init__(self, maturity : float, strike : float, barrier : float):
         """
         Initialise une option à barrière avec une maturity, un prix d'exercice et une barrière.
         """
@@ -16,7 +16,7 @@ class UpBarrierOption(AbstractBarrierOption):
     """
     Classe abstraite pour les options avec barrière haute.
     """
-    def __init__(self, maturity, strike, barrier):
+    def __init__(self, maturity : float, strike : float, barrier : float):
         super().__init__(maturity, strike, barrier)
         if self.barrier <= self.strike:
             raise ValueError("La barrière doit être supérieure au strike pour une barrière haute.")
@@ -29,7 +29,7 @@ class DownBarrierOption(AbstractBarrierOption):
     """
     Classe abstraite pour les options avec barrière basse.
     """
-    def __init__(self, maturity, strike, barrier):
+    def __init__(self, maturity : float, strike : float, barrier : float):
         super().__init__(maturity, strike, barrier)
         if self.barrier >= self.strike:
             raise ValueError("La barrière doit être inférieure au strike pour une barrière basse.")
