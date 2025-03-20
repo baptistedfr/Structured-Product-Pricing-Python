@@ -1,10 +1,9 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import norm
 from tools import InterpolationType
-from market_data.volatility_surface import LocalVolatilitySurface, SVIVolatilitySurface
-from market_data.rate_curve.rate_curve import RateCurve
+from kernel.market_data.volatility_surface import LocalVolatilitySurface, SVIVolatilitySurface
+from kernel.market_data.rate_curve.rate_curve import RateCurve
 
 # Get market data
 spot = 230

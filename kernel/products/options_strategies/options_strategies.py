@@ -1,6 +1,6 @@
 import numpy as np
 from .abstract_option_strategy import AbstractOptionStrategy
-from ..Options import *
+from ..options import *
 
 class Straddle(AbstractOptionStrategy):
     """

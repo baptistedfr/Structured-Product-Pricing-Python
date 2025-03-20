@@ -3,7 +3,7 @@ import pandas as pd
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from market_data.rate_curve.rate_curve import RateCurve
+from kernel.market_data.rate_curve.rate_curve import RateCurve
 from .abstract_volatility_surface import VolatilitySurface
 
 

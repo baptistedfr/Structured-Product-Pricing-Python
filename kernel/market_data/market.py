@@ -1,7 +1,7 @@
 from typing import Dict, List, Union
 import pandas as pd
 from tools import CalendarConvention, InterpolationType, RateCurveTypes
-from market_data.rate_curve.rate_curve import RateCurve
+from kernel.market_data.rate_curve.rate_curve import RateCurve
 
 
 class Market:

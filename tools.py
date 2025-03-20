@@ -1,5 +1,5 @@
 from enum import Enum
-from market_data.rate_curve.interpolators import *
+from kernel.market_data.rate_curve.interpolators import *
 
 
 class InterpolationType(Enum):
