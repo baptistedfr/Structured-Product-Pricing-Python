@@ -16,8 +16,8 @@ class Straddle(AbstractOptionStrategy):
         :param position_call: Position sur le call (True pour long, False pour short).
         :param position_put: Position sur le put (True pour long, False pour short).
         """
-        self.call = CallOption(maturity, strike)
-        self.put = PutOption(maturity, strike)
+        self.call = EuropeanCallOption(maturity, strike)
+        self.put = EuropeanPutOption(maturity, strike)
         super().__init__([(self.call, position_call), (self.put, position_put)])
 
 class Strangle(AbstractOptionStrategy):
@@ -35,8 +35,8 @@ class Strangle(AbstractOptionStrategy):
         :param position_call: Position sur le call (True pour long, False pour short).
         :param position_put: Position sur le put (True pour long, False pour short).
         """
-        self.call = CallOption(maturity, strike_call)
-        self.put = PutOption(maturity, strike_put)
+        self.call = EuropeanCallOption(maturity, strike_call)
+        self.put = EuropeanPutOption(maturity, strike_put)
         super().__init__([(self.call, position_call), (self.put, position_put)])
 
 class BullSpread(AbstractOptionStrategy):
@@ -54,8 +54,8 @@ class BullSpread(AbstractOptionStrategy):
         :param position_low: Position sur l'option avec strike_low (True pour long, False pour short).
         :param position_high: Position sur l'option avec strike_high (True pour long, False pour short).
         """
-        self.call_low = CallOption(maturity, strike_low)
-        self.call_high = CallOption(maturity, strike_high)
+        self.call_low = EuropeanCallOption(maturity, strike_low)
+        self.call_high = EuropeanCallOption(maturity, strike_high)
         super().__init__([(self.call_low, position_low), (self.call_high, position_high)])
 
 class BearSpread(AbstractOptionStrategy):
@@ -73,8 +73,8 @@ class BearSpread(AbstractOptionStrategy):
         :param position_low: Position sur l'option avec strike_low (True pour long, False pour short).
         :param position_high: Position sur l'option avec strike_high (True pour long, False pour short).
         """
-        self.put_low = PutOption(maturity, strike_low)
-        self.put_high = PutOption(maturity, strike_high)
+        self.put_low = EuropeanPutOption(maturity, strike_low)
+        self.put_high = EuropeanPutOption(maturity, strike_high)
         super().__init__([(self.put_low, position_low), (self.put_high, position_high)])
 
 class ButterflySpread(AbstractOptionStrategy):
@@ -94,10 +94,10 @@ class ButterflySpread(AbstractOptionStrategy):
         :param position_mid: Position sur les options avec strike_mid (True pour long, False pour short).
         :param position_high: Position sur l'option avec strike_high (True pour long, False pour short).
         """
-        self.call_low = CallOption(maturity, strike_low)
-        self.call_mid1 = CallOption(maturity, strike_mid)
-        self.call_mid2 = CallOption(maturity, strike_mid)
-        self.call_high = CallOption(maturity, strike_high)
+        self.call_low = EuropeanCallOption(maturity, strike_low)
+        self.call_mid1 = EuropeanCallOption(maturity, strike_mid)
+        self.call_mid2 = EuropeanCallOption(maturity, strike_mid)
+        self.call_high = EuropeanCallOption(maturity, strike_high)
         super().__init__([
             (self.call_low, position_low),
             (self.call_mid1, position_mid),
@@ -124,10 +124,10 @@ class CondorSpread(AbstractOptionStrategy):
         :param position_mid2: Position sur l'option avec strike_mid2 (True pour long, False pour short).
         :param position_high: Position sur l'option avec strike_high (True pour long, False pour short).
         """
-        self.call_low = CallOption(maturity, strike_low)
-        self.call_mid1 = CallOption(maturity, strike_mid1)
-        self.call_mid2 = CallOption(maturity, strike_mid2)
-        self.call_high = CallOption(maturity, strike_high)
+        self.call_low = EuropeanCallOption(maturity, strike_low)
+        self.call_mid1 = EuropeanCallOption(maturity, strike_mid1)
+        self.call_mid2 = EuropeanCallOption(maturity, strike_mid2)
+        self.call_high = EuropeanCallOption(maturity, strike_high)
         super().__init__([
             (self.call_low, position_low),
             (self.call_mid1, position_mid1),
@@ -150,9 +150,10 @@ class CalendarSpread(AbstractOptionStrategy):
         :param position_near: Position sur l'option avec échéance proche (True pour long, False pour short).
         :param position_far: Position sur l'option avec échéance lointaine (True pour long, False pour short).
         """
-        self.call_near = CallOption(maturity_near, strike)
-        self.call_far = CallOption(maturity_far, strike)
+        self.call_near = EuropeanCallOption(maturity_near, strike)
+        self.call_far = EuropeanCallOption(maturity_far, strike)
         super().__init__([(self.call_near, position_near), (self.call_far, position_far)])
+
 
 class Collar(AbstractOptionStrategy):
     """
@@ -169,6 +170,6 @@ class Collar(AbstractOptionStrategy):
         :param position_call: Position sur l'option call (True pour long, False pour short).
         :param position_put: Position sur l'option put (True pour long, False pour short).
         """
-        self.call = CallOption(maturity, strike_call)
-        self.put = PutOption(maturity, strike_put)
+        self.call = EuropeanCallOption(maturity, strike_call)
+        self.put = EuropeanPutOption(maturity, strike_put)
         super().__init__([(self.call, position_call), (self.put, position_put)])

@@ -9,11 +9,30 @@ from .barrier_options import (
     DownAndOutPutOption,
 )
 from .vanilla_options import (
-    CallOption,
-    PutOption)
+    EuropeanCallOption,
+    EuropeanPutOption)
 
 from .binary_options import (
     BinaryCallOption,
     BinaryPutOption)
+
+from .path_dependant_options import(
+    AsianCallOption,
+    AsianPutOption,
+    LookbackCallOption,
+    LookbackPutOption,
+    FloatingStrikeCallOption,
+    FloatingStrikePutOption,
+    ForwardStartCallOption,
+    ForwardStartPutOption,
+    ChooserOption)
+
+from .multi_assets_options import(
+    BasketCallOption,
+    BasketPutOption,
+    WorstOfCallOption,
+    WorstOfPutOption,
+    BestOfCallOption,
+    BestOfPutOption)
 
 from .abstract_option import AbstractOption
