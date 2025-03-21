@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from kernel.products import *
+from Kernel.Products import *
 
 
 class TestBarrierOptions(unittest.TestCase):
