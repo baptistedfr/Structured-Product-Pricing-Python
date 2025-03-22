@@ -1,11 +1,12 @@
 from .abstract_pricing_engine import AbstractPricingEngine
 from ..discritization_schemes.abstract_sheme import AbstractScheme
-from ..discritization_schemes.path_independent_scheme import PathIndependentScheme
+from ..discritization_schemes.euler_scheme import EulerScheme
 from ..stochastic_processes.stochastic_process import StochasticProcess
 from ..stochastic_processes.black_scholes_process import BlackScholesProcess
 from kernel.products.options.abstract_option import AbstractOption
 from kernel.market_data.market import Market
 import numpy as np
+import pandas as pd
 
 
 class MCPricingEngine(AbstractPricingEngine):
@@ -16,17 +17,18 @@ class MCPricingEngine(AbstractPricingEngine):
     and can be extended to compute Greeks or other risk measures.
     """
 
-    def __init__(self, n_paths: float, market: Market):
+    def __init__(self, market: Market, nb_paths: float, nb_steps: float):
         """
         Initializes the pricing engine.
 
         Parameters:
-            n_paths (float): The number of paths to simulate
             market (Market): The market data used for pricing
-            scheme (AbstractScheme): The discretization scheme used for simulation
+            nb_paths (float): The number of paths to simulate
+            nb_steps (float): The number of steps to simulate for each path
         """
         super().__init__(market)
-        self.n_paths = n_paths
+        self.nb_paths = nb_paths
+        self.nb_steps = nb_steps
 
     def _define_process(self, derivative: AbstractOption) -> BlackScholesProcess:
         """
@@ -44,7 +46,7 @@ class MCPricingEngine(AbstractPricingEngine):
         drift = self.market.get_rate(T) / 100
         volatility = self.market.get_volatility(K, T*252) # Corriger la maturité de jours en années dans les fichiers de vol
         
-        return BlackScholesProcess(S0=initial_value, T=T, nb_steps=1, drift=drift, volatility=volatility)
+        return BlackScholesProcess(S0=initial_value, T=T, nb_steps=self.nb_steps, drift=drift, volatility=volatility)
 
     def compute_price(self, derivative: AbstractOption) -> float:
         """
@@ -60,16 +62,16 @@ class MCPricingEngine(AbstractPricingEngine):
         self.process = self._define_process(derivative)
 
         # Define the scheme used for the discretization
-        self.scheme = PathIndependentScheme(self.process, nb_paths=self.n_paths)
+        self.scheme = EulerScheme(self.process, nb_paths=self.nb_paths)
         
-        # Simulate paths and compute the price
-        terminal_values = self.scheme.simulate_paths()
-        payoffs = np.array([derivative.payoff(value) for value in terminal_values])
+        # Simulate paths and compute the payoff
+        price_paths = self.scheme.simulate_paths()
+        payoffs = np.array([derivative.payoff(path) for path in price_paths])
 
         return np.mean(payoffs) * np.exp(-self.process.drift * self.process.T)
     
 
-    def compute_greeks(self, derivative: AbstractOption, epsilon: float = 1e-4) -> dict:
+    def compute_greeks(self, derivative: AbstractOption, epsilon: float = 1e-4) -> pd.DataFrame:
         """
         Computes the greeks of the derivative using the Monte Carlo simulation and finite differences.
 
@@ -78,7 +80,7 @@ class MCPricingEngine(AbstractPricingEngine):
             epsilon (float): The small change used for finite difference calculations.
 
         Returns:
-            dict: A dictionary containing the computed greeks.
+            pd.DataFrame: A DataFrame containing the computed greeks.
         """
         greeks = {}
 
@@ -116,4 +118,23 @@ class MCPricingEngine(AbstractPricingEngine):
         original_rate = original_rate
         greeks['Rho'] = (bumped_price_rho - original_price) / epsilon
 
-        return greeks
+        return pd.DataFrame([greeks], index=["Greeks"])
+
+    def plot_paths(self, derivative: AbstractOption, nb_paths_plot: int = 100):
+        """
+        Plots the simulated paths of the stochastic process.
+
+        Parameters:
+            derivative (AbstractOption): The derivative to plot paths for.
+        """
+        # Set temporary number of paths for plotting
+        nb_path_origin = self.nb_paths
+        self.nb_paths = nb_paths_plot
+
+        # Compute the price and plot the paths
+        self.process = self._define_process(derivative)
+        self.scheme = EulerScheme(self.process, nb_paths=self.nb_paths)
+        self.scheme.plot_paths(nb_paths_plot)
+
+        # Reset the number of paths
+        self.nb_paths = nb_path_origin

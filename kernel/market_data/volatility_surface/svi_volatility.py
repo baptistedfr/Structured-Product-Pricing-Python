@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from kernel.market_data.rate_curve.rate_curve import RateCurve
 from .abstract_volatility_surface import VolatilitySurface
+import seaborn as sns
 
 
 class SVIVolatilitySurface(VolatilitySurface):
@@ -176,20 +177,23 @@ class SVIVolatilitySurface(VolatilitySurface):
         # Get the smile
         vol_impl = [self.get_volatility(strike, maturity) for strike in strikes]
 
+        sns.set(style="whitegrid")
+        palette = sns.color_palette("coolwarm", 3)
         # Display the options
         if display_options:
             sub_calls = option_data[option_data["Type"] == "call"]
             sub_puts = option_data[option_data["Type"] == "put"]
-            plt.scatter(sub_calls['Strike'], sub_calls['Implied vol'], color="royalblue", label='Calls')
-            plt.scatter(sub_puts['Strike'], sub_puts['Implied vol'], color="crimson", label='Puts')
+            plt.scatter(sub_calls['Strike'], sub_calls['Implied vol'], color=palette[0], label='Calls')
+            plt.scatter(sub_puts['Strike'], sub_puts['Implied vol'], color=palette[1], label='Puts')
 
         # Display the smile
-        plt.plot(strikes, vol_impl, label='SVI', color="teal")
-        plt.xlabel('Strike')
-        plt.grid(True)
-        plt.ylabel('Implied Volatility')
-        plt.title('Implied Volatility Smile')
-        plt.legend()
+        plt.plot(strikes, vol_impl, label='SVI', color=palette[2])
+        plt.xlabel('Strike', fontsize=12)
+        plt.ylabel('Implied Volatility', fontsize=12)
+        plt.title('Implied Volatility Smile', fontsize=14, fontweight='bold')
+        plt.legend(fontsize=10)
+        plt.grid(True, linestyle='--', alpha=0.7)
+        plt.tight_layout()
         plt.show()
 
     def display_surface(self) -> None:
@@ -201,7 +205,7 @@ class SVIVolatilitySurface(VolatilitySurface):
 
         # Option data
         spot = self.option_data["Spot"].values[0]
-        strikes = np.linspace(spot/2, spot*2, 50)
+        strikes = np.linspace(spot / 2, spot * 2, 50)
         maturities = np.linspace(min(self.option_data["Maturity"]), max(self.option_data["Maturity"]), 50)
 
         # Get the surface
@@ -213,11 +217,22 @@ class SVIVolatilitySurface(VolatilitySurface):
 
         # Plot the surface
         X, Y = np.meshgrid(strikes, maturities)
-        fig = plt.figure(figsize=(10, 7))
+        fig = plt.figure(figsize=(12, 8))
         ax = fig.add_subplot(111, projection='3d')
-        ax.plot_surface(Y, X, vol_surface, cmap='plasma')
-        ax.set_xlabel('Strike')
-        ax.set_ylabel('Maturity')
-        ax.set_zlabel('Implied Volatility')
-        ax.set_title('Implied Volatility Surface')
+        surf = ax.plot_surface(Y, X, vol_surface, cmap='viridis', edgecolor='k', alpha=0.8)
+
+        # Add color bar
+        cbar = fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10)
+        cbar.set_label('Implied Volatility', fontsize=12)
+
+        # Set labels and title
+        ax.set_xlabel('Maturity', fontsize=12, labelpad=10)
+        ax.set_ylabel('Strike', fontsize=12, labelpad=10)
+        ax.set_zlabel('Implied Volatility', fontsize=12, labelpad=10)
+        ax.set_title('Implied Volatility Surface', fontsize=14, fontweight='bold')
+
+        # Add gridlines
+        ax.grid(True, linestyle='--', alpha=0.5)
+
+        plt.tight_layout()
         plt.show()
