@@ -1,5 +1,5 @@
 from kernel.models.stochastic_processes.black_scholes_process import BlackScholesProcess
-from kernel.models.discritization_schemes.euler_scheme import EulerScheme
+from kernel.models.discritization_schemes.path_independent_scheme import EulerScheme
 import numpy as np 
 
 
