@@ -21,10 +21,10 @@ class RateCurve:
             data_curve (pd.DataFrame): Market yield data with 'Pillar' (maturity) and 'Rate' (yield) columns.
             interpolation_type (InterpolationType): The interpolation method to use for yield curve fitting.
         """
+        self.data_curve = data_curve
         maturities, rates = self._process_data_curve(data_curve)
 
         self.interpolator = interpolation_type.value(maturities, rates)
-        self.data_curve = data_curve
 
     def _process_data_curve(self, df_curve: pd.DataFrame) -> Tuple[np.ndarray[float], np.ndarray[float]]:
         """
@@ -68,6 +68,12 @@ class RateCurve:
             return value       # Already in years
         else:
             raise ValueError(f"Unrecognized unit: {unit}")
+
+    def calibrate(self) -> None:
+        """
+        Calibrates the interpolator to the market data.
+        """
+        self.interpolator.calibrate()
 
     def get_rate(self, maturity: float) -> float:
         """

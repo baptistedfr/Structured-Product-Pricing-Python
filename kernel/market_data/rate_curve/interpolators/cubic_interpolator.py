@@ -13,8 +13,13 @@ class CubicInterpolator(Interpolator):
             rates (np.ndarray[float]): List of observed yield rates corresponding to the maturities.
         """
         super().__init__(maturities, rates)
+        self.interpolator = None
 
-        self.interpolator = CubicSpline(maturities, rates, bc_type='natural', extrapolate=True)
+    def calibrate(self):
+        """
+        Calibrates the CubicInterpolator by fitting the observed market rates.
+        """
+        self.interpolator = CubicSpline(self.maturities, self.rates, bc_type='natural', extrapolate=True)
 
     def interpolate(self, t: float) -> float:
         """
@@ -26,4 +31,6 @@ class CubicInterpolator(Interpolator):
         Returns:
             float: Estimated yield rate for the given maturity.
         """
+        if self.interpolator is None:
+            raise ValueError("Interpolator has not been calibrated. Please call the 'calibrate' method first.")
         return self.interpolator(t)

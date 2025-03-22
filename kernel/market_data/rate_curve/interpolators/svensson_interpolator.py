@@ -28,7 +28,7 @@ class SvenssonInterpolator(Interpolator):
         """
         super().__init__(maturities, rates)
         
-        self.params = self._calibrate()
+        self.params = None
 
     @staticmethod
     def _svensson(t, beta0: float, beta1: float, beta2: float, beta3: float, tau1: float, tau2: float) -> float:
@@ -49,7 +49,7 @@ class SvenssonInterpolator(Interpolator):
 
         return beta0 + term1 + term2 + term3
 
-    def _calibrate(self) -> np.ndarray[float]:
+    def calibrate(self) -> np.ndarray[float]:
         """
         Calibrates the Svensson model parameters by fitting the yield curve to observed market rates.
 
@@ -62,7 +62,7 @@ class SvenssonInterpolator(Interpolator):
         bounds = ([0, -np.inf, -np.inf, -np.inf, 0.01, 0.01], [np.inf, np.inf, np.inf, np.inf, np.inf, np.inf])
         
         params, _ = curve_fit(self._svensson, self.maturities, self.rates, p0=p0, bounds=bounds)
-        return np.array(params)
+        self.params =  np.array(params)
 
     def interpolate(self, t: float) -> float:
         """
@@ -74,4 +74,6 @@ class SvenssonInterpolator(Interpolator):
         Returns:
             float: Estimated yield rate for the given maturity.
         """
+        if self.params is None:
+            raise ValueError("Interpolator has not been calibrated. Please call the 'calibrate' method first.")
         return self._svensson(t, *self.params)

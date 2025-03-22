@@ -7,6 +7,7 @@ from kernel.market_data.underlying_asset import UnderlyingAsset
 from kernel.market_data.volatility_surface.abstract_volatility_surface import VolatilitySurface
 from kernel.market_data.volatility_surface.svi_volatility import SVIVolatilitySurface
 
+
 class Market:
     """
     Represents a financial market environment, providing tools to fetch and use yield curves,
@@ -55,12 +56,16 @@ class Market:
         Raises:
             Exception: If there is an error loading the yield curve data
         """
-        try:
+        if not os.path.exists(f"data/yield_curves/{self.rate_curve_type.value}"):
+            raise FileNotFoundError(f"'data/yield_curves/{self.rate_curve_type.value}' does not exist.")
+        else:
             data_curve = pd.read_excel(f"data/yield_curves/{self.rate_curve_type.value}")
-            rate_curve = RateCurve(data_curve=data_curve, interpolation_type=self.interpolation_type)
-            self.rate_curve = rate_curve
-        except Exception as e:
-            raise Exception(f"Error loading {self.rate_curve_type.name} curve: {e}")
+        
+        rate_curve = RateCurve(data_curve=data_curve, interpolation_type=self.interpolation_type)
+        rate_curve.calibrate()
+
+        self.rate_curve = rate_curve
+        
 
     def _fetch_underlying_info(self):
         """

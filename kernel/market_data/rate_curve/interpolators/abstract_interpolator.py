@@ -15,6 +15,13 @@ class Interpolator(ABC):
         self.rates = rates
 
     @abstractmethod
+    def calibrate(self):
+        """
+        Calibrates the interpolator to fit the observed market rates.
+        """
+        pass
+
+    @abstractmethod
     def interpolate(self, t: float) -> float:
         """
         Interpolates the yield for a given maturity.

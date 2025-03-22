@@ -20,7 +20,7 @@ class NelsonSiegelInterpolator(Interpolator):
         """
         super().__init__(maturities, rates)
 
-        self.params = self._calibrate()
+        self.params = None
 
     @staticmethod
     def _nelson_siegel(t, beta0: float, beta1: float, beta2: float, tau: float ) -> float:
@@ -37,7 +37,7 @@ class NelsonSiegelInterpolator(Interpolator):
         return beta0 + beta1 * (1 - np.exp(-t / tau)) / (t / tau) + beta2 * (
             (1 - np.exp(-t / tau)) / (t / tau) - np.exp(-t / tau))
 
-    def _calibrate(self) -> np.ndarray[float]:
+    def calibrate(self) -> np.ndarray[float]:
         """
         Calibrates the Nelson-Siegel parameters by fitting the model to observed yield data.
 
@@ -47,7 +47,7 @@ class NelsonSiegelInterpolator(Interpolator):
         p0 = [0.02, -0.02, 0.02, 1.0]  # Initial parameter guess
         params, _ = curve_fit(self._nelson_siegel, self.maturities, self.rates, p0=p0,
                               bounds=([0, -np.inf, -np.inf, 0.01], [np.inf, np.inf, np.inf, np.inf]))
-        return np.array(params)
+        self.params = np.array(params)
 
     def interpolate(self, t: float) -> float:
         """
@@ -59,4 +59,6 @@ class NelsonSiegelInterpolator(Interpolator):
         Returns:
             float: Estimated yield rate for the given maturity.
         """
+        if self.params is None:
+            raise ValueError("Interpolator has not been calibrated. Please call the 'calibrate' method first.")
         return self._nelson_siegel(t, *self.params)
