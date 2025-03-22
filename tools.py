@@ -1,6 +1,8 @@
 from enum import Enum
 from kernel.market_data.rate_curve.interpolators import *
 # from kernel.market_data.volatility_surface import *
+from kernel.models.discritization_schemes import EulerScheme, HestonEulerScheme
+
 
 class InterpolationType(Enum):
     LINEAR = LinearInterpolator
@@ -23,9 +25,11 @@ class RateCurveType(Enum):
     CREDIT_IG = ""
     CREDIT_HY = ""
 
+
 # class VolatilitySurfaceType(Enum):
 #     LOCAL = SVIVolatilitySurface
 #     SVI = LocalVolatilitySurface
+
 
 class CalendarConvention(Enum):
 
@@ -33,3 +37,11 @@ class CalendarConvention(Enum):
     ACT_365 = "Actual/365"
     ACT_ACT = "Actual/Actual"
     THIRTY_360 = "30/360"
+
+
+class EulerSchemeType(Enum):
+    """
+    Enum class representing the different types of Euler schemes.
+    """
+    EULER = EulerScheme
+    HESTON_EULER = HestonEulerScheme

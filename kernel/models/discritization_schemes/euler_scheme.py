@@ -1,20 +1,32 @@
 import numpy as np
+from typing import Tuple
 from .abstract_sheme import AbstractScheme
-import matplotlib.pyplot as plt
-import seaborn as sns
-
+from ..stochastic_processes.black_scholes_process import BlackScholesProcess
 
 class EulerScheme(AbstractScheme):
     """
-    Class implementing the Euler scheme for simulating stochastic paths.
+    Class implementing the Euler scheme for simulating stochastic paths of the underlying asset.
     """
 
-    def simulate_paths(self):
+    def __init__(self, process: BlackScholesProcess, nb_paths: float = 10000, seed: int = 4012):
+        """
+        Initializes an instance of the AbstractScheme class.
+
+        Parameters:
+            stochastic_process (BlackScholesProcess): The BS stochastic process to simulate
+            nb_paths (float): The number of paths to simulate. Default is 10000
+            seed (int): The seed for the random number generator. Default is 4012
+        """
+        self.process = process
+        self.nb_paths = nb_paths
+        self.seed = seed
+
+    def simulate_paths(self) -> Tuple[np.ndarray, None]:
         """
         Simulate stochastic paths using the path Euler Scheme.
 
         Returns:
-            np.ndarray: A NumPy array containing the simulated paths.
+            Tuple[np.ndarray, None]: A NumPy array containing the simulated paths.
         """
         # Generate the random brownian increments
         W = self._generate_random_increments()
@@ -30,21 +42,4 @@ class EulerScheme(AbstractScheme):
         for i in range(1, self.process.nb_steps + 1):
             S[:, i] = S[:, i - 1] * np.exp((mu - 0.5 * sigma**2) * self.process.dt + sigma * W[:, i - 1])
 
-        return S
-    
-    def plot_paths(self, nb_paths_plot: int):
-        """
-        Plot the first simulated paths with improved aesthetics.
-        """
-        sns.set(style="whitegrid")
-        palette = sns.color_palette("RdYlBu", nb_paths_plot)
-        paths = self.simulate_paths()[:nb_paths_plot, :]
-        for i in range(paths.shape[0]):
-            plt.plot(paths[i, :], color=palette[i])
-        plt.grid(True, linestyle='--', alpha=0.7)
-        plt.xlim(0, self.process.nb_steps)
-        plt.xlabel('Time step', fontsize=12)
-        plt.ylabel('Underlying Price', fontsize=12)
-        plt.title('Price paths simulated by the Euler scheme', fontsize=14, fontweight='bold')
-        plt.tight_layout()
-        plt.show()
+        return S, None

@@ -1,7 +1,4 @@
 from .abstract_pricing_engine import AbstractPricingEngine
-from ..discritization_schemes.abstract_sheme import AbstractScheme
-from ..discritization_schemes.euler_scheme import EulerScheme
-from ..stochastic_processes.stochastic_process import StochasticProcess
 from ..stochastic_processes.black_scholes_process import BlackScholesProcess
 from kernel.products.options.abstract_option import AbstractOption
 from kernel.market_data.market import Market
@@ -17,7 +14,7 @@ class MCPricingEngine(AbstractPricingEngine):
     and can be extended to compute Greeks or other risk measures.
     """
 
-    def __init__(self, market: Market, nb_paths: float, nb_steps: float):
+    def __init__(self, market: Market, nb_paths: float, nb_steps: float, discretization_method: 'EulerSchemeType'): # type: ignore
         """
         Initializes the pricing engine.
 
@@ -25,10 +22,12 @@ class MCPricingEngine(AbstractPricingEngine):
             market (Market): The market data used for pricing
             nb_paths (float): The number of paths to simulate
             nb_steps (float): The number of steps to simulate for each path
+            discretization_type (EulerSchemeType): The type of discretization scheme to use. Default is EulerSchemeType.EULER
         """
         super().__init__(market)
         self.nb_paths = nb_paths
         self.nb_steps = nb_steps
+        self.discretization_method = discretization_method
 
     def _define_process(self, derivative: AbstractOption) -> BlackScholesProcess:
         """
@@ -62,16 +61,16 @@ class MCPricingEngine(AbstractPricingEngine):
         self.process = self._define_process(derivative)
 
         # Define the scheme used for the discretization
-        self.scheme = EulerScheme(self.process, nb_paths=self.nb_paths)
+        self.scheme = self.discretization_method.value(self.process, nb_paths=self.nb_paths)
         
         # Simulate paths and compute the payoff
-        price_paths = self.scheme.simulate_paths()
+        price_paths, _ = self.scheme.simulate_paths()
         payoffs = np.array([derivative.payoff(path) for path in price_paths])
 
         return np.mean(payoffs) * np.exp(-self.process.drift * self.process.T)
     
 
-    def compute_greeks(self, derivative: AbstractOption, epsilon: float = 1e-4) -> pd.DataFrame:
+    def compute_greeks(self, derivative: AbstractOption, epsilon: float = 1e-3) -> pd.DataFrame:
         """
         Computes the greeks of the derivative using the Monte Carlo simulation and finite differences.
 
@@ -120,7 +119,7 @@ class MCPricingEngine(AbstractPricingEngine):
 
         return pd.DataFrame([greeks], index=["Greeks"])
 
-    def plot_paths(self, derivative: AbstractOption, nb_paths_plot: int = 100):
+    def plot_paths(self, derivative: AbstractOption, nb_paths_plot: int = 100, plot_variance: bool = False):
         """
         Plots the simulated paths of the stochastic process.
 
@@ -133,8 +132,8 @@ class MCPricingEngine(AbstractPricingEngine):
 
         # Compute the price and plot the paths
         self.process = self._define_process(derivative)
-        self.scheme = EulerScheme(self.process, nb_paths=self.nb_paths)
-        self.scheme.plot_paths(nb_paths_plot)
+        self.scheme = self.discretization_method.value(self.process, nb_paths=self.nb_paths)
+        self.scheme.plot_paths(nb_paths_plot, plot_variance)
 
         # Reset the number of paths
         self.nb_paths = nb_path_origin

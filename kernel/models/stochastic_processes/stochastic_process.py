@@ -1,9 +1,6 @@
 from abc import ABC, abstractmethod
-import random
 import numpy as np
-from scipy.stats import norm
-from enum import Enum
-
+from typing import Union, Tuple
 
 class StochasticProcess(ABC):
     """
@@ -29,21 +26,19 @@ class StochasticProcess(ABC):
         self.nb_steps = nb_steps
         self.T = T
         self.dt = dt
-        
-        self.drift = None
-        self.diffusion = None
 
-    def get_brownian_increments(self, nb_paths: int, seed: int = 4012) -> np.ndarray:
+    @abstractmethod
+    def get_random_increments(self, nb_paths: int, seed: int = 4012) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
-        Generates random increments of the brownian motion.
+        Generates random increments of the brownian motion(s).
 
         Parameters:
             nb_paths (int): The number of paths to simulate
             seed (int): The seed for the random number generator. Default is 4012
         
         Returns:
-            np.ndarray: The generated increments for the stochastic process
+            np.ndarray: The generated increments for the brownian motion
+                or
+            tuple(np.ndarray): The generated increments for the brownian motions if the process has multiple sources of randomness
         """
-        rng = np.random.default_rng(seed)
-        Z = rng.standard_normal(size=(nb_paths, self.nb_steps))
-        return Z * np.sqrt(self.dt)
+        pass
