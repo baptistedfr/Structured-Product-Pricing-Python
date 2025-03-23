@@ -3,12 +3,12 @@ import pandas as pd
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
-from Kernel.market_data.rate_curve.rate_curve import RateCurve
-from .abstract_volatility_surface import VolatilitySurface
 import seaborn as sns
+from Kernel.market_data  import RateCurve
+from . import AbstractVolatilitySurface
 
 
-class SVIVolatilitySurface(VolatilitySurface):
+class SVIVolatilitySurface(AbstractVolatilitySurface):
     """
     Defines the SVI raw parametrisation defined by Jim Gatheral (2004) to fit an arbitrage free implied volatility surface.
 

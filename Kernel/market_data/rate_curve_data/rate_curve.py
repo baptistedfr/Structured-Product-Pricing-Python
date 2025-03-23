@@ -2,10 +2,8 @@ import re
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from tools import InterpolationType
 from typing import Tuple
 import seaborn as sns
-
 
 class RateCurve:
     """
@@ -15,7 +13,7 @@ class RateCurve:
     and discount factors. The interpolation can be based on different models such as Svensson, Nelson-Siegel...
     """
 
-    def __init__(self, data_curve: pd.DataFrame, interpolation_type: InterpolationType = InterpolationType.SVENSSON):
+    def __init__(self, data_curve: pd.DataFrame, interpolation_type: 'InterpolationType'):  # type: ignore
         """
         Initializes the rate curve with market data and an interpolation method.
 

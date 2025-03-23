@@ -1,9 +1,9 @@
 import pandas as pd
 from abc import ABC, abstractmethod
-from Kernel.market_data.rate_curve.rate_curve import RateCurve
+from Kernel.market_data  import RateCurve
 
 
-class VolatilitySurface(ABC):
+class AbstractVolatilitySurface(ABC):
 
     def __init__(self, option_data: pd.DataFrame, rate_curve: RateCurve):
         """

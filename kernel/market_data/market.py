@@ -1,12 +1,8 @@
 import os
 import numpy as np
 import pandas as pd
-from tools import *
-from Kernel.market_data.rate_curve.rate_curve import RateCurve
-from Kernel.market_data.underlying_asset import UnderlyingAsset
-from Kernel.market_data.volatility_surface.abstract_volatility_surface import VolatilitySurface
-from Kernel.market_data.volatility_surface.svi_volatility import SVIVolatilitySurface
-
+from Kernel.tools import *
+from Kernel.market_data import RateCurve, InterpolationType,UnderlyingAsset, VolatilitySurfaceType
 
 class Market:
     """
@@ -24,7 +20,7 @@ class Market:
     def __init__(self, underlying_name: str, 
                  rate_curve_type: RateCurveType = RateCurveType.RF_US_TREASURY, 
                  interpolation_type: InterpolationType = InterpolationType.CUBIC,
-                #  volatility_surface_type: VolatilitySurfaceType = VolatilitySurfaceType.SVI,
+                 volatility_surface_type: VolatilitySurfaceType = VolatilitySurfaceType.SVI,
                  calendar_convention: CalendarConvention = CalendarConvention.ACT_360):
         """
         Initializes the Market object with specified configurations.
@@ -37,7 +33,7 @@ class Market:
         """
         self.rate_curve_type = rate_curve_type
         self.interpolation_type = interpolation_type
-        # self.volatility_surface_type = volatility_surface_type
+        self.volatility_surface_type = volatility_surface_type
         self.calendar_convention = calendar_convention
 
         self.rate_curve = None
@@ -92,7 +88,7 @@ class Market:
         if self.rate_curve is None:
             self._fetch_yield_curves()
 
-        volatility_surface = SVIVolatilitySurface(option_data=option_data, rate_curve=self.rate_curve)
+        volatility_surface = self.volatility_surface_type.value(option_data=option_data, rate_curve=self.rate_curve)
         volatility_surface.calibrate_surface()
 
         self.volatility_surface = volatility_surface

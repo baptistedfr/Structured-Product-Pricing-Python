@@ -1,5 +1,4 @@
-from .abstract_volatility_surface import VolatilitySurface
+from .abstract_volatility_surface import AbstractVolatilitySurface
 from .local_volatility import LocalVolatilitySurface
 from .svi_volatility import SVIVolatilitySurface
-
-all = ["VolatilitySurface", "LocalVolatilitySurface", "SVIVolatilitySurface"]
+from .enums_volatility import VolatilitySurfaceType
