@@ -1,7 +1,7 @@
 from enum import Enum
-from kernel.market_data.rate_curve.interpolators import *
+from Kernel.market_data.rate_curve.interpolators import *
 # from kernel.market_data.volatility_surface import *
-from kernel.models.discritization_schemes import EulerScheme, HestonEulerScheme
+from Kernel.models.discritization_schemes import EulerScheme, HestonEulerScheme
 
 
 class InterpolationType(Enum):

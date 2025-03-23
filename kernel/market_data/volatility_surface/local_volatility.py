@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import griddata
 from .abstract_volatility_surface import VolatilitySurface
-from kernel.market_data.rate_curve.rate_curve import RateCurve
+from Kernel.market_data.rate_curve.rate_curve import RateCurve
 
 
 class LocalVolatilitySurface(VolatilitySurface):

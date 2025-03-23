@@ -1,4 +1,4 @@
-from kernel.models.stochastic_processes.stochastic_process import StochasticProcess
+from Kernel.models.stochastic_processes.stochastic_process import StochasticProcess
 import numpy as np
 
 

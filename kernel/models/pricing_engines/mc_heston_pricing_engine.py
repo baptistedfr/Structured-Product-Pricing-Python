@@ -1,6 +1,6 @@
 from .mc_pricing_engine import MCPricingEngine
 from ..stochastic_processes.heston_process import HestonProcess
-from kernel.products.options.abstract_option import AbstractOption
+from Kernel.Products.options.abstract_option import AbstractOption
 
 
 class HestonMCPricingEngine(MCPricingEngine):

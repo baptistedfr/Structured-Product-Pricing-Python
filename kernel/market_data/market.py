@@ -2,10 +2,10 @@ import os
 import numpy as np
 import pandas as pd
 from tools import *
-from kernel.market_data.rate_curve.rate_curve import RateCurve
-from kernel.market_data.underlying_asset import UnderlyingAsset
-from kernel.market_data.volatility_surface.abstract_volatility_surface import VolatilitySurface
-from kernel.market_data.volatility_surface.svi_volatility import SVIVolatilitySurface
+from Kernel.market_data.rate_curve.rate_curve import RateCurve
+from Kernel.market_data.underlying_asset import UnderlyingAsset
+from Kernel.market_data.volatility_surface.abstract_volatility_surface import VolatilitySurface
+from Kernel.market_data.volatility_surface.svi_volatility import SVIVolatilitySurface
 
 
 class Market:

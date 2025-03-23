@@ -1,6 +1,6 @@
 import pandas as pd
 from abc import ABC, abstractmethod
-from kernel.market_data.rate_curve.rate_curve import RateCurve
+from Kernel.market_data.rate_curve.rate_curve import RateCurve
 
 
 class VolatilitySurface(ABC):
