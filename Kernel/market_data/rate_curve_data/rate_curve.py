@@ -18,56 +18,13 @@ class RateCurve:
         Initializes the rate curve with market data and an interpolation method.
 
         Parameters:
-            data_curve (pd.DataFrame): Market yield data with 'Pillar' (maturity) and 'Rate' (yield) columns.
+            data_curve (pd.DataFrame): Market yield data with 'Maturity'and 'Rate' columns.
             interpolation_type (InterpolationType): The interpolation method to use for yield curve fitting.
         """
         self.data_curve = data_curve
-        maturities, rates = self._process_data_curve(data_curve)
+        maturities, rates = np.array(self.data_curve["Maturity"]), np.array(self.data_curve["Rate"])
 
         self.interpolator = interpolation_type.value(maturities, rates)
-
-    def _process_data_curve(self, df_curve: pd.DataFrame) -> Tuple[np.ndarray[float], np.ndarray[float]]:
-        """
-        Processes the input data to extract maturities and rates.
-        Converts maturity formats (weeks, months, years) into year-based values.
-
-        Parameters:
-            df_curve (pd.DataFrame): Raw market data with 'Pillar' and 'Rate' columns.
-
-        Returns:
-            tuple: (maturities as np.ndarray, rates as np.ndarray)
-        """
-        if "Pillar" not in df_curve.columns or "Rate" not in df_curve.columns:
-            raise Exception("No 'Pillar' or 'Rate' column in data!")
-
-        df_curve["Years"] = df_curve["Pillar"].apply(self._convert_maturities)
-        return np.array(df_curve["Years"]), np.array(df_curve["Rate"])
-
-    @staticmethod
-    def _convert_maturities(maturity: str) -> float:
-        """
-        Converts a maturity string (e.g., '10Y', '6M', '3W') into a numerical value in years.
-
-        Parameters:
-            maturity (str): Maturity in standard financial format (e.g., '10Y', '6M', '3W').
-
-        Returns:
-            float: Maturity expressed in years.
-        """
-        match = re.match(r"(\d+)([MWY])", maturity)
-        if not match:
-            raise ValueError(f"Invalid maturity: {maturity}")
-
-        value, unit = int(match.group(1)), match.group(2)
-        
-        if unit == "W":
-            return value / 52  # Convert weeks to years
-        elif unit == "M":
-            return value / 12  # Convert months to years
-        elif unit == "Y":
-            return value       # Already in years
-        else:
-            raise ValueError(f"Unrecognized unit: {unit}")
 
     def calibrate(self) -> None:
         """
@@ -97,7 +54,7 @@ class RateCurve:
         sns.set(style="whitegrid")
         palette = sns.color_palette("coolwarm", 2)
         plt.figure(figsize=(10, 6))
-        plt.scatter(self.data_curve['Years'], self.data_curve['Rate'], color=palette[0], label='Market yields', zorder=5)
+        plt.scatter(self.data_curve['Maturity'], self.data_curve['Rate'], color=palette[0], label='Market yields', zorder=5)
         plt.plot(maturities, yield_curve, label='Interpolated yield curve', color=palette[1], linewidth=2)
         plt.xlabel('Maturity (Years)', fontsize=12)
         plt.ylabel('Yield (%)', fontsize=12)

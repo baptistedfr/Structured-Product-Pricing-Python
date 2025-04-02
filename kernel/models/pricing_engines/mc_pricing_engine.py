@@ -1,7 +1,7 @@
 from .abstract_pricing_engine import AbstractPricingEngine
 from ..stochastic_processes.black_scholes_process import BlackScholesProcess
-from Kernel.Products.options.abstract_option import AbstractOption
-from Kernel.market_data.market import Market
+from kernel.products.options.abstract_option import AbstractOption
+from kernel.market_data.market import Market
 import numpy as np
 import pandas as pd
 

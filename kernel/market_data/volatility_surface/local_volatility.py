@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from scipy.interpolate import griddata
 from . import AbstractVolatilitySurface
-from Kernel.market_data import RateCurve
+from kernel.market_data import RateCurve
 
 
 class LocalVolatilitySurface(AbstractVolatilitySurface):
@@ -73,13 +73,9 @@ class LocalVolatilitySurface(AbstractVolatilitySurface):
         local_variance = (dC_dT + strike * dC_dK) / (0.5 * strike**2 * d2C_d2K)
         return np.sqrt(local_variance)
 
-    def display_smile(self, maturity: float, display_options: bool = True) -> None:
+    def display_smile(self) -> None:
         """
-        Displays the local volatility smile for a given maturity.
-
-        Parameters:
-            maturity (float): maturity for which we display the smile
-            display_options (bool): display the options on the smile plot or not
+        Displays the local volatility smiles
         """
         ...
 

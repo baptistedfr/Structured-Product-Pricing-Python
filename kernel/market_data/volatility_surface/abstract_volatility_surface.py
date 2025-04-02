@@ -1,6 +1,6 @@
 import pandas as pd
 from abc import ABC, abstractmethod
-from Kernel.market_data  import RateCurve
+from kernel.market_data  import RateCurve
 
 
 class AbstractVolatilitySurface(ABC):
@@ -34,13 +34,9 @@ class AbstractVolatilitySurface(ABC):
         ...
 
     @abstractmethod
-    def display_smile(self, maturity: float, display_options: bool = True) -> None:
+    def display_smiles(self) -> None:
         """
-        Displays the volatility smile for a given maturity.
-
-        Parameters:
-            maturity (float): maturity for which we display the smile
-            display_options (bool): display the options on the smile plot or not
+        Displays the volatility smiles.
         """
         ...
 

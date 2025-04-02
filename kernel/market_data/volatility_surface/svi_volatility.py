@@ -4,13 +4,13 @@ from scipy.stats import norm
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 import seaborn as sns
-from Kernel.market_data  import RateCurve
+from kernel.market_data  import RateCurve
 from . import AbstractVolatilitySurface
 
 
 class SVIVolatilitySurface(AbstractVolatilitySurface):
     """
-    Defines the SVI raw parametrisation defined by Jim Gatheral (2004) to fit an arbitrage free implied volatility surface.
+    Defines the SVI raw parametrisation defined by Jim Gatheral (2004) to fit an arbitrage free Implied Volatility surface.
 
     We choose the "raw" parametrisation as it is the simplest SVI form by we note that "natural" or "jump wings"
     parametrisation can we derived from the raw form to insure parameters interpretability.
@@ -40,7 +40,7 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
     def __init__(self, option_data: pd.DataFrame, rate_curve: RateCurve):
         """
         Parameters:
-            option_data (pd.DataFrame): option market data, must contain the following columns : 'Strike', 'Spot', 'Maturity', 'Implied vol'
+            option_data (pd.DataFrame): option market data, must contain the following columns : 'Strike', 'Spot', 'Maturity', 'Implied Volatility'
             rate_curve (RateCurve): rate curve object already calibrated
         """
         self.option_data = option_data
@@ -71,18 +71,18 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
         Parameters:
             spot (np.ndarray[float]): market data spot
             maturities (np.ndarray[float]): market data maturities
-            vols (np.ndarray[float]): market data implied volatility from the option data historic
+            vols (np.ndarray[float]): market data Implied Volatility from the option data historic
             strikes (np.ndarray[float]): market data strikes
 
         Returns:
             np.ndarray[float]: options vega
         """
-        # Interpol rates for the maturities
         try:
             r = np.array([self.rate_curve.get_rate(t) for t in maturities])/100
         except Exception:
             r = 0
 
+        vols = vols / 100
         d1 = (np.log(spot / strikes) + (r + 0.5 * vols ** 2) * maturities) / (vols * np.sqrt(maturities))
         return spot * norm.pdf(d1) * np.sqrt(maturities)
 
@@ -98,19 +98,19 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
             svi_params (np.ndarray[float]): given set of svi parameters [a, b, p, m, sigma]
             log_moneyness (np.ndarray[float]): market data log moneyness
             maturities (np.ndarray[float]): market data maturities
-            market_implied_vol (np.ndarray[float]): market data implied volatility from the option data historic
+            market_implied_vol (np.ndarray[float]): market data Implied Volatility from the option data historic
             vega (np.ndarray[float]): vega to weight the MSE by putting more importance on ATM options
 
         Returns:
             float: Mean Squared Error between market data and SVI total implied variance
         """
-        # Conversion from market data implied volatility to market data total implied variance
+        # Conversion from market data Implied Volatility to market data total implied variance
         market_total_variance = (market_implied_vol ** 2) * maturities
 
         # SVI total implied variance
         SVI_total_variance = np.array(self.svi_total_variance(log_moneyness, svi_params))
 
-        return float(np.mean(vega * (SVI_total_variance - market_total_variance) ** 2))
+        return float(np.mean(vega * (1/maturities) * (SVI_total_variance - market_total_variance) ** 2))
 
     def calibrate_surface(self) -> None:
         """
@@ -118,28 +118,37 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
 
         We use the Nelder-Mead optimizer of scipy optimisation module.
 
-        Market option data has to contain at least 4 columns : 'Log Moneyness', 'Spot', 'Maturities' & 'Implied vol'
+        Market option data has to contain at least 4 columns : 'Strike', 'Spot', 'Maturity' & 'Implied Volatility'
         """
+        # Filter out unrealistic implied volatilities
+        self.option_data = self.option_data[self.option_data["Maturity"] < 1.1]
+        self.option_data = self.option_data.sort_values(by=["Maturity"])
         option_data = self.option_data
 
-        required_columns = {'Strike', 'Spot', 'Maturity', 'Implied vol'}
-        if not required_columns.issubset(option_data.columns):
-            raise ValueError(f"DataFrame must contain the following columns: {required_columns}")
+        # Initial parameters and bounds
+        initial_params = np.array([0.1, 0.1, 0.0, 0.0, 0.1])  # Reasonable starting values
+        bounds = [(0, None), (0, None), (-1, 1), (None, None), (0, None)]  # Ensure valid parameter ranges
 
-        initial_params = np.array([0, 0, 0, 0, 0])
-        option_data["Log Moneyness"] = np.log(option_data['Strike']/ option_data['Spot'])
+        # Compute log moneyness
+        option_data["Log Moneyness"] = np.log(option_data['Strike'] / option_data['Spot'])
 
+        # Compute vega weights
         vega = self.compute_weighting_vega(option_data['Spot'].values[0],
-                                           option_data["Maturity"], option_data["Implied vol"], option_data['Strike'])
+                                           option_data["Maturity"], option_data["Implied Volatility"], option_data['Strike'])
 
-        result = minimize(self.cost_function_svi, initial_params, method="BFGS",
+        # Perform optimization
+        result = minimize(self.cost_function_svi, initial_params, method="L-BFGS-B", bounds=bounds,
                           args=(np.array(option_data["Log Moneyness"]),
                                 np.array(option_data["Maturity"]),
-                                np.array(option_data["Implied vol"]),
+                                np.array(option_data["Implied Volatility"]),
                                 vega))
-        
-        self.svi_params = result.x
-        self.spot = option_data['Spot'].values[0]
+
+        # Store the calibrated parameters
+        if result.success:
+            self.svi_params = result.x
+            self.spot = option_data['Spot'].values[0]
+        else:
+            raise Exception(f"SVI calibration failed: {result.message}")
 
     def get_volatility(self, strike: float, maturity: float) -> float:
         """
@@ -158,41 +167,54 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
         total_variance = self.svi_total_variance(log_moneyness, self.svi_params)
         return np.sqrt(total_variance / maturity)
 
-    def display_smile(self, maturity: float, display_options: bool = True) -> None:
+    def display_smiles(self) -> None:
         """
-        Displays the SVI volatility smile for a given maturity.
+        Displays the SVI volatility smiles for all maturities in the option data.
 
-        Parameters:
-            maturity (float): maturity for which we display the smile
-            display_options (bool): display the options on the smile plot or not
+        Each subplot corresponds to a specific maturity and shows both market data and the interpolated smile.
         """
         if self.svi_params is None:
             raise Exception("SVI surface not calibrated yet !")
 
-        # Extract option data at the given maturity
-        option_data = self.option_data[self.option_data["Maturity"] == maturity]
-        spot = self.option_data["Spot"].values[0]
-        strikes = np.linspace(spot/2, spot*2, 500)
+        # Get unique maturities
+        unique_maturities = self.option_data["Maturity"].unique()
+        num_maturities = len(unique_maturities)
 
-        # Get the smile
-        vol_impl = [self.get_volatility(strike, maturity) for strike in strikes]
+        # Create subplots
+        cols = 3
+        rows = (num_maturities + cols - 1) // cols
+        fig, axes = plt.subplots(rows, cols, figsize=(15, 5 * rows))
+        axes = axes.flatten()
 
-        sns.set(style="whitegrid")
-        palette = sns.color_palette("coolwarm", 3)
-        # Display the options
-        if display_options:
-            sub_calls = option_data[option_data["Type"] == "call"]
-            sub_puts = option_data[option_data["Type"] == "put"]
-            plt.scatter(sub_calls['Strike'], sub_calls['Implied vol'], color=palette[0], label='Calls')
-            plt.scatter(sub_puts['Strike'], sub_puts['Implied vol'], color=palette[1], label='Puts')
+        for i, maturity in enumerate(unique_maturities):
+            ax = axes[i]
 
-        # Display the smile
-        plt.plot(strikes, vol_impl, label='SVI', color=palette[2])
-        plt.xlabel('Strike', fontsize=12)
-        plt.ylabel('Implied Volatility', fontsize=12)
-        plt.title('Implied Volatility Smile', fontsize=14, fontweight='bold')
-        plt.legend(fontsize=10)
-        plt.grid(True, linestyle='--', alpha=0.7)
+            # Extract option data for the current maturity
+            option_data = self.option_data[self.option_data["Maturity"] == maturity]
+            spot = self.option_data["Spot"].values[0]
+            strikes = np.linspace(spot / 2, spot * 2, 500)
+
+            # Get the smile
+            vol_impl = [self.get_volatility(strike, maturity) for strike in strikes]
+
+            # Plot market data
+            ax.scatter(option_data['Strike']*100/self.spot, option_data['Implied Volatility'], color='blue', label='Market Data', s=20)
+
+            # Plot interpolated smile
+            strikes = (strikes / self.spot) * 100
+            ax.plot(strikes, vol_impl, label='Interpolated Smile', color='orange')
+
+            # Set labels and title
+            ax.set_title(f"Maturity: {int(maturity*252)} days", fontsize=12, fontweight='bold')
+            ax.set_xlabel('Moneyness (% ATM)', fontsize=10)
+            ax.set_ylabel('Implied Volatility (%)', fontsize=10)
+            ax.legend(fontsize=8)
+            ax.grid(True, linestyle='--', alpha=0.7)
+
+        # Hide unused subplots
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
+
         plt.tight_layout()
         plt.show()
 
@@ -216,23 +238,32 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
                 vol_surface[i, j] = np.sqrt(total_variance / maturity)
 
         # Plot the surface
-        X, Y = np.meshgrid(strikes, maturities)
+        maturities = maturities * 252
+        strikes = (strikes / self.spot) * 100
+        X, Y = np.meshgrid(maturities, strikes)  # Correct orientation
         fig = plt.figure(figsize=(12, 8))
         ax = fig.add_subplot(111, projection='3d')
-        surf = ax.plot_surface(Y, X, vol_surface, cmap='viridis', edgecolor='k', alpha=0.8)
+        surf = ax.plot_surface(X, Y, vol_surface, cmap='viridis', edgecolor='k', alpha=0.8)
+
+        # Add option points
+        option_strikes = (self.option_data["Strike"] / self.spot) * 100
+        option_maturities = self.option_data["Maturity"] * 252
+        option_vols = self.option_data["Implied Volatility"]
+        ax.scatter(option_maturities, option_strikes, option_vols, color='red', label='Options', s=20)
 
         # Add color bar
         cbar = fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10)
         cbar.set_label('Implied Volatility', fontsize=12)
 
         # Set labels and title
-        ax.set_xlabel('Maturity', fontsize=12, labelpad=10)
-        ax.set_ylabel('Strike', fontsize=12, labelpad=10)
-        ax.set_zlabel('Implied Volatility', fontsize=12, labelpad=10)
+        ax.set_xlabel('Maturity (days)', fontsize=12, labelpad=10)
+        ax.set_ylabel('Moneyness (% ATM)', fontsize=12, labelpad=10)
+        ax.set_zlabel('Implied Volatility (%)', fontsize=12, labelpad=10)
         ax.set_title('Implied Volatility Surface', fontsize=14, fontweight='bold')
 
         # Add gridlines
         ax.grid(True, linestyle='--', alpha=0.5)
+        ax.legend(fontsize=10)
 
         plt.tight_layout()
         plt.show()
