@@ -1,20 +1,22 @@
 from .abstract_pricing_engine import AbstractPricingEngine
-from ..stochastic_processes.black_scholes_process import BlackScholesProcess
+from ..stochastic_processes import StochasticProcess
 from kernel.products.options.abstract_option import AbstractOption
 from kernel.market_data.market import Market
+from kernel.tools import ObservationFrequency
 import numpy as np
 import pandas as pd
 
 
 class MCPricingEngine(AbstractPricingEngine):
     """
-    A Monte Carlo pricing engine for path independent financial derivatives.
+    A Monte Carlo pricing engine for classic financial derivatives (no barrier, no asian payoff ...)
 
     This class uses Monte Carlo simulation to compute the price of derivatives
     and can be extended to compute Greeks or other risk measures.
     """
 
-    def __init__(self, market: Market, nb_paths: float, nb_steps: float, discretization_method: 'EulerSchemeType'): # type: ignore
+    def __init__(self, market: Market, nb_paths: float, nb_steps: float, 
+                 discretization_method: 'EulerSchemeType', stochastic_process: StochasticProcess): # type: ignore
         """
         Initializes the pricing engine.
 
@@ -28,28 +30,11 @@ class MCPricingEngine(AbstractPricingEngine):
         self.nb_paths = nb_paths
         self.nb_steps = nb_steps
         self.discretization_method = discretization_method
+        self.process = stochastic_process
 
-    def _define_process(self, derivative: AbstractOption) -> BlackScholesProcess:
+    def compute_price(self, derivative: AbstractOption, obs_frequency: ObservationFrequency = ObservationFrequency.ANNUAL) -> float:
         """
-        Defines the stochastic process used for simulation based on market & derivatives parameters.
-
-        Returns:
-            BlackScholesProcess: The stochastic process used for simulation.
-        """
-        # Derivates parameters
-        T = derivative.maturity
-        K = derivative.strike
-
-        # Market parameters
-        initial_value = self.market.underlying_asset.last_price
-        drift = self.market.get_rate(T)
-        volatility = self.market.get_volatility(K, T)
-        
-        return BlackScholesProcess(S0=initial_value, T=T, nb_steps=self.nb_steps, drift=drift, volatility=volatility)
-
-    def compute_price(self, derivative: AbstractOption) -> float:
-        """
-        Computes the price of a path independent derivative using the Monte Carlo simulation.
+        Computes the price of a derivative using the Monte Carlo simulation.
 
         Parameters:
             derivative (AbstractOption): The derivative to price.
@@ -57,19 +42,36 @@ class MCPricingEngine(AbstractPricingEngine):
         Returns:
             float: The computed price of the derivative.
         """
-        # Define the stochastic process
-        self.process = self._define_process(derivative)
 
         # Define the scheme used for the discretization
         self.scheme = self.discretization_method.value(self.process, nb_paths=self.nb_paths)
         
         # Simulate paths and compute the payoff
         price_paths, _ = self.scheme.simulate_paths()
+
+        # # Logique autocallable
+        # payoffs = []
+        # t_call = []
+        # for path in price_paths:
+
+        #     payoff, t_call = derivative.payoff(path)
+        
+        # total_payoff = []
+        # for p, t in zip(payoffs, t_call):
+        #     total_payoff.append(p * np.exp(-self.process.drift * t))
+        
+        # return np.mean(total_payoff)
+    
         payoffs = np.array([derivative.payoff(path) for path in price_paths])
 
         return np.mean(payoffs) * np.exp(-self.process.drift * self.process.T)
     
+    # Mapping discrztization : annuel / semi annuel
 
+    # def compute_coupon():
+    #     dichotomy
+    #     while : compute_price
+            
     def compute_greeks(self, derivative: AbstractOption, epsilon: float = 1e-3) -> pd.DataFrame:
         """
         Computes the greeks of the derivative using the Monte Carlo simulation and finite differences.
@@ -130,8 +132,6 @@ class MCPricingEngine(AbstractPricingEngine):
         nb_path_origin = self.nb_paths
         self.nb_paths = nb_paths_plot
 
-        # Compute the price and plot the paths
-        self.process = self._define_process(derivative)
         self.scheme = self.discretization_method.value(self.process, nb_paths=self.nb_paths)
         self.scheme.plot_paths(nb_paths_plot, plot_variance)
 

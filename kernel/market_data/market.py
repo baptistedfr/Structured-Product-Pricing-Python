@@ -22,7 +22,8 @@ class Market:
                  rate_curve_type: RateCurveType = RateCurveType.RF_US_TREASURY, 
                  interpolation_type: InterpolationType = InterpolationType.CUBIC,
                  volatility_surface_type: VolatilitySurfaceType = VolatilitySurfaceType.SVI,
-                 calendar_convention: CalendarConvention = CalendarConvention.ACT_360):
+                 calendar_convention: CalendarConvention = CalendarConvention.ACT_360,
+                 obs_frequency: ObservationFrequency = ObservationFrequency.ANNUAL):
         """
         Initializes the Market object with specified configurations.
 
@@ -36,7 +37,8 @@ class Market:
         self.interpolation_type = interpolation_type
         self.volatility_surface_type = volatility_surface_type
         self.calendar_convention = calendar_convention
-
+        self.obs_frequency = obs_frequency
+        
         self.rate_curve = None
         self._fetch_yield_curves()
 
