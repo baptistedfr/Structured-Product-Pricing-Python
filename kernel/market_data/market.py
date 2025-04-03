@@ -165,7 +165,7 @@ class Market:
         """
         if not self.rate_curve:
             self._fetch_yield_curves()
-        return self.rate_curve.get_rate(maturity)
+        return self.rate_curve.get_rate(maturity) / 100
     
     def get_discount_factor(self, maturity: float) -> float:
         """

@@ -21,8 +21,8 @@ class HestonMCPricingEngine(MCPricingEngine):
 
         # Market parameters
         initial_value = self.market.underlying_asset.last_price
-        drift = self.market.get_rate(T) / 100
-        volatility = self.market.get_volatility(K, T*252) # Corriger la maturité de jours en années dans les fichiers de vol
+        drift = self.market.get_rate(T)
+        volatility = self.market.get_volatility(K, T)
         theta = volatility**2
         kappa = 1
         ksi = 0.1

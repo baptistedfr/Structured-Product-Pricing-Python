@@ -42,8 +42,8 @@ class MCPricingEngine(AbstractPricingEngine):
 
         # Market parameters
         initial_value = self.market.underlying_asset.last_price
-        drift = self.market.get_rate(T) / 100
-        volatility = self.market.get_volatility(K, T*252) # Corriger la maturité de jours en années dans les fichiers de vol
+        drift = self.market.get_rate(T)
+        volatility = self.market.get_volatility(K, T)
         
         return BlackScholesProcess(S0=initial_value, T=T, nb_steps=self.nb_steps, drift=drift, volatility=volatility)
 
