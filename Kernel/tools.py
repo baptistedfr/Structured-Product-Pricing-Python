@@ -21,4 +21,11 @@ class CalendarConvention(Enum):
     ACT_ACT = "Actual/Actual"
     THIRTY_360 = "30/360"
 
-
+class ObservationFrequency(Enum):
+    """
+    Enum mapping observation frequencies to the number of periods in a year.
+    """
+    ANNUAL = 1          # Annuel
+    SEMIANNUAL = 2      # Semi-annuel
+    QUARTERLY = 4       # Trimestriel
+    MONTHLY = 12        # Mensuel
