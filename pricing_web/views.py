@@ -16,7 +16,7 @@ from kernel.products import (EuropeanCallOption, EuropeanPutOption,
 
 from kernel.tools import CalendarConvention
 from kernel.market_data import InterpolationType, VolatilitySurfaceType, Market, RateCurveType
-from kernel.models import MCPricingEngine, HestonMCPricingEngine, EulerSchemeType
+from kernel.models import MCPricingEngine, EulerSchemeType
 
 def get_options():
     vanilla_options = [{'value': 'EuropeanCallOption', 'label': 'Call'}, 

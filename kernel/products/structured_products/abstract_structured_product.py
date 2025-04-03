@@ -5,12 +5,11 @@ class AbstractStructuredProduct(ABC):
     """
     Classe abstraite représentant un produit structuré.
     """
-    def __init__(self, maturity : float, notional : float):
-        self.validate_inputs(maturity, notional)
+    def __init__(self, maturity : float):
+        self.validate_inputs(maturity)
         self.maturity = maturity
-        self.notional = notional
 
-    def validate_inputs(self, maturity : float, notional : float):
+    def validate_inputs(self, maturity : float):
         """
         Valide les entrées pour la maturité et le nominal.
 
@@ -23,8 +22,6 @@ class AbstractStructuredProduct(ABC):
         """
         if maturity <= 0:
             raise ValueError("La maturité doit être positive.")
-        if notional <= 0:
-            raise ValueError("Le nominal doit être positif.")
 
     @abstractmethod
     def payoff(self, paths: np.ndarray) -> float:

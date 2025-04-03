@@ -5,7 +5,7 @@ class AbstractParticipationProduct(AbstractStructuredProduct):
     """
     Classe abstraite pour les produits de participation.
     """
-    def __init__(self, maturity: float, notional: float, initial_price : float, rebate: float = 0, leverage: float = 1):
+    def __init__(self, maturity: float, initial_price : float = 100, rebate: float = 0, leverage: float = 1):
         """
         Initialise un produit de participation.
 
@@ -15,7 +15,7 @@ class AbstractParticipationProduct(AbstractStructuredProduct):
             rebate (float, optional): Remboursement fixe en cas de conditions spécifiques. Par défaut, 0.
             leverage (float, optional): Facteur de levier pour amplifier les gains ou pertes. Par défaut, 1.
         """
-        super().__init__(maturity, notional)
+        super().__init__(maturity)
         self.initial_price: float = initial_price
         self.rebate: float = rebate
         self.leverage: float = leverage
@@ -24,20 +24,19 @@ class TwinWin(AbstractParticipationProduct):
     """
     Produit structuré Twin Win avec barrières supérieure et inférieure, rebate et levier.
     """
-    def __init__(self, maturity: float, notional: float, initial_price: float, upper_barrier: float, lower_barrier: float, rebate: float = 0, leverage: float = 1):
+    def __init__(self, maturity: float, upper_barrier: float, lower_barrier: float, initial_price: float = 100, rebate: float = 0, leverage: float = 1):
         """
         Initialise un produit Twin Win.
 
         Args:
             maturity (float): Maturité du produit.
-            notional (float): Nominal du produit.
             initial_price (float): Prix initial du sous-jacent.
             upper_barrier (float): Barrière supérieure.
             lower_barrier (float): Barrière inférieure.
             rebate (float, optional): Remboursement fixe si la barrière supérieure est franchie. Par défaut, 0.
             leverage (float, optional): Facteur de levier. Par défaut, 1.
         """
-        super().__init__(maturity, notional, initial_price, rebate=rebate, leverage=leverage)
+        super().__init__(maturity = maturity, initial_price=initial_price, rebate=rebate, leverage=leverage)
         if upper_barrier <= lower_barrier:
             raise ValueError("La barrière supérieure doit être strictement supérieure à la barrière inférieure.")
         self.upper_barrier = upper_barrier
@@ -64,11 +63,11 @@ class TwinWin(AbstractParticipationProduct):
         # Si la barrière inférieure est franchie
         if final_price < self.lower_barrier:
             # Perte similaire à un Put Down-and-In
-            loss = self.leverage * self.notional * performance
+            loss = self.leverage * performance
             return loss  # Perte
 
         # Participation dans la plage définie par les barrières
-        return self.leverage * self.notional * abs(performance)
+        return self.leverage * abs(performance)
 
     def description(self) -> str:
         if self.upper_barrier:
@@ -83,7 +82,7 @@ class Airbag(AbstractParticipationProduct):
     """
     Produit structuré AirBag avec barrières supérieure et inférieure, rebate et levier.
     """
-    def __init__(self, maturity: float, notional: float, initial_price: float, upper_barrier: float, lower_barrier: float, rebate: float = 0, leverage: float = 1):
+    def __init__(self, maturity: float, upper_barrier: float, lower_barrier: float, initial_price: float = 100, rebate: float = 0, leverage: float = 1):
         """
         Initialise un produit AirBag.
 
@@ -96,7 +95,7 @@ class Airbag(AbstractParticipationProduct):
             rebate (float, optional): Remboursement fixe si la barrière supérieure est franchie. Par défaut, 0.
             leverage (float, optional): Facteur de levier. Par défaut, 1.
         """
-        super().__init__(maturity, notional, initial_price, rebate=rebate, leverage=leverage)
+        super().__init__(maturity = maturity, initial_price = initial_price, rebate=rebate, leverage=leverage)
         if upper_barrier <= lower_barrier:
             raise ValueError("La barrière supérieure doit être strictement supérieure à la barrière inférieure.")
         self.upper_barrier = upper_barrier
@@ -123,13 +122,13 @@ class Airbag(AbstractParticipationProduct):
         # Si la barrière inférieure est franchie
         if final_price < self.lower_barrier:
             # Perte similaire à un Put Down-and-In
-            loss = self.leverage * self.notional * performance
+            loss = self.leverage  * performance
             return loss  # Perte
         elif final_price<self.initial_price:
             return 1
         else:
             # Participation dans la plage définie par les barrières
-            return self.leverage * self.notional * performance
+            return self.leverage * performance
 
     def description(self) -> str:
         if self.upper_barrier:
