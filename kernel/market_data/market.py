@@ -113,7 +113,7 @@ class Market:
         if missing_columns:
             raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
 
-        asset_info = df_underlying[df_underlying["Security Label"] == self.underlying_asset.name]
+        asset_info = df_underlying[df_underlying["Ticker"] == self.underlying_asset.name]
         if asset_info.empty:
             raise ValueError(f"No data found for security name: {self.underlying_asset.name}")
         

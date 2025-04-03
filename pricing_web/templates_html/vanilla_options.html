@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pricer d'options{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center">Pricer d'Options</h1>
+    <p class="text-center">Choisissez un type d'option et remplissez les champs nécessaires pour calculer le prix.</p>
+    <form id="options-form" 
+        data-vanilla-options='{{ vanilla_options|safe }}'
+        data-path-dependent-options='{{ path_dependent_options|safe }}'
+        data-barrier-options='{{ barrier_options|safe }}'
+        data-binary-options='{{ binary_options|safe }}'>
+        <!-- Choix du type d'option -->
+        <div class="mb-3">
+            <label class="form-label">Type d'Option</label>
+            <div class="d-flex justify-content-around">
+                <div>
+                    <input type="radio" id="vanilla" name="option_type" value="vanilla" required>
+                    <label for="vanilla" style="font-size: 1.2rem;">Vanille</label>
+                </div>
+                <div>
+                    <input type="radio" id="path_dependent" name="option_type" value="path_dependent">
+                    <label for="path_dependent" style="font-size: 1.2rem;">Path-Dependent</label>
+                </div>
+                <div>
+                    <input type="radio" id="binary" name="option_type" value="binary">
+                    <label for="binary" style="font-size: 1.2rem;">Binaire</label>
+                </div>
+                <div>
+                    <input type="radio" id="barrier" name="option_type" value="barrier">
+                    <label for="barrier" style="font-size: 1.2rem;">Barrière</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sous-type d'option -->
+        <div class="mb-3" id="subtype-fields" style="display: none;">
+            <label for="subtype" class="form-label">Sous-Type d'Option</label>
+            <select class="form-select" id="subtype" name="subtype">
+                <!-- Les options seront ajoutées dynamiquement via JavaScript -->
+            </select>
+        </div>
+        <!-- Champ commun : Ticker -->
+        <div class="mb-3">
+            <label for="ticker" class="form-label">Ticker</label>
+            <select class="form-select" id="ticker" name="ticker" required>
+                {% for ticker in tickers %}
+                <option value="{{ ticker }}">{{ ticker }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Champ commun : Prix du Ticker -->
+        <div class="mb-3">
+            <label for="ticker-price" class="form-label">Prix du Ticker</label>
+            <input type="text" class="form-control" id="ticker-price" name="ticker-price" placeholder="Prix du ticker" readonly>
+        </div>
+        <!-- Champ commun : Strike -->
+        <div class="mb-3">
+            <label for="strike" class="form-label">Strike</label>
+            <input type="number" class="form-control" id="strike" name="strike" placeholder="Entrez le strike" value="100" required>
+        </div>
+        <!-- Champ commun : Maturité -->
+        <div class="mb-3">
+            <label for="maturity" class="form-label">Maturité</label>
+            <input type="number" class="form-control" id="maturity" name="maturity" placeholder="Maturité (en années)" value="1" required>
+        </div>
+        <!-- Champ commun : Nombre de Steps -->
+        <div class="mb-3">
+            <label for="nb_steps" class="form-label">Nombre de Steps</label>
+            <input type="number" class="form-control" id="nb_steps" name="nb_steps" placeholder="Entrez le nombre de steps (ex: 100)" value="100" required>
+        </div>
+        <!-- Champ commun : Type de Volatilité -->
+        <div class="mb-3">
+            <label for="vol_type" class="form-label">Type de Volatilité</label>
+            <select class="form-select" id="vol_type" name="vol_type" required>
+                {% for vol in vol_types %}
+                <option value="{{ vol.value }}">{{ vol.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Champ dynamique : Volatilité Constante -->
+        <div class="mb-3" id="constant-vol-container" style="display: none;">
+            <label for="constant_vol" class="form-label">Volatilité Constante</label>
+            <input type="number" class="form-control" id="constant_vol" name="constant_vol" placeholder="Entrez la volatilité constante (ex: 0.2)">
+        </div>
+        <!-- Champ dynamique : Coupon -->
+        <div class="mb-3" id="binary-fields" style="display: none;">
+            <label for="coupon" class="form-label">Coupon</label>
+            <input type="number" class="form-control" id="coupon" name="coupon" placeholder="Entrez le coupon">
+        </div>
+        <!-- Champ dynamique : Barrière -->
+        <div class="mb-3" id="barrier-fields" style="display: none;">
+            <label for="barrier" class="form-label">Barrière</label>
+            <input type="number" class="form-control" id="barrier" name="barrier" placeholder="Entrez la barrière">
+        </div>
+        <!-- Bouton pour calculer le prix -->
+        <button type="button" id="calculate-btn" class="btn btn-primary">Calculer le Prix</button>
+    </form>
+
+    <!-- Résultats -->
+    <div class="mt-4 text-center">
+        <h2>Résultats</h2>
+        <p><strong>Prix Calculé :</strong></p>
+        <p id="price" style="font-size: 2rem; font-weight: bold;">-</p>
+        <h3>Graphique du Payoff</h3>
+        <img id="payoff-graph" src="" alt="Graphique du Payoff" class="img-fluid" style="display: none;">
+    </div>
+</div>
+
+<!-- JavaScript intégré -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const optionTypeRadios = document.getElementsByName('option_type');
+    const subtypeFields = document.getElementById('subtype-fields');
+    const subtypeSelect = document.getElementById('subtype');
+    const tickerSelect = document.getElementById('ticker');
+    const tickerPriceInput = document.getElementById('ticker-price');
+    const volTypeSelect = document.getElementById('vol_type');
+    const constantVolContainer = document.getElementById('constant-vol-container');
+    const binaryFields = document.getElementById('binary-fields');
+    const barrierFields = document.getElementById('barrier-fields');
+
+    function toggleFields() {
+        let selectedOptionType = '';
+        optionTypeRadios.forEach(radio => {
+            if (radio.checked) {
+                selectedOptionType = radio.value;
+            }
+        });
+    
+        subtypeFields.style.display = 'none';
+        binaryFields.style.display = 'none';
+        barrierFields.style.display = 'none';
+    
+        if (selectedOptionType === 'vanilla') {
+            populateSubtypes(JSON.parse(document.getElementById('options-form').dataset.vanillaOptions));
+            subtypeFields.style.display = 'block';
+        } else if (selectedOptionType === 'path_dependent') {
+            populateSubtypes(JSON.parse(document.getElementById('options-form').dataset.pathDependentOptions));
+            subtypeFields.style.display = 'block';
+        } else if (selectedOptionType === 'binary') {
+            populateSubtypes(JSON.parse(document.getElementById('options-form').dataset.binaryOptions));
+            subtypeFields.style.display = 'block';
+        } else if (selectedOptionType === 'barrier') {
+            populateSubtypes(JSON.parse(document.getElementById('options-form').dataset.barrierOptions));
+            subtypeFields.style.display = 'block';
+        }
+    }
+    
+    function populateSubtypes(options) {
+        subtypeSelect.innerHTML = '';
+        options.forEach(option => {
+            const opt = document.createElement('option');
+            opt.value = option.value;
+            opt.textContent = option.label;
+            subtypeSelect.appendChild(opt);
+        });
+    }
+
+    function toggleConstantVolInput() {
+        if (volTypeSelect.value === 'constant') {
+            constantVolContainer.style.display = 'block';
+        } else {
+            constantVolContainer.style.display = 'none';
+        }
+    }
+
+    function fetchTickerPrice() {
+        const selectedTicker = tickerSelect.value;
+        fetch(`/get_ticker_price?ticker=${selectedTicker}`)
+            .then(response => response.json())
+            .then(data => {
+                tickerPriceInput.value = data.ticker_price;
+            })
+            .catch(error => console.error('Erreur lors de la récupération du prix du ticker:', error));
+    }
+
+    optionTypeRadios.forEach(radio => radio.addEventListener('change', toggleFields));
+    volTypeSelect.addEventListener('change', toggleConstantVolInput);
+    tickerSelect.addEventListener('change', fetchTickerPrice);
+
+    toggleFields();
+    toggleConstantVolInput();
+    fetchTickerPrice();
+});
+</script>
+{% endblock %}
