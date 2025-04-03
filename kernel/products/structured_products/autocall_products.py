@@ -48,7 +48,7 @@ class Phoenix(AbstractAutocall):
         self.coupon_barrier = coupon_barrier
     
     def payoff(self, paths: np.ndarray) -> float:
-        num_observations = paths.shape[1]
+        num_observations = paths.shape[0]
         coupons = 0
         missed_coupons = 0
 

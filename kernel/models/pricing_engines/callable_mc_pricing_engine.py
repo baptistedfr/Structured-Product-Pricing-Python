@@ -1,5 +1,6 @@
 from .mc_pricing_engine import MCPricingEngine
 from kernel.tools import ObservationFrequency
+from kernel.products.structured_products import AbstractAutocall
 import numpy as np
 
 
@@ -11,9 +12,9 @@ class CallableMCPricingEngine(MCPricingEngine):
     and can be extended to compute Greeks or other risk measures.
     """
 
-    def compute_price(self, derivative: 'CallableProduct', obs_frequency: ObservationFrequency = ObservationFrequency.ANNUAL) -> float: #type: ignore # A changer avec la bonne classe le moment venu
+    def compute_price(self, derivative: AbstractAutocall, obs_frequency: ObservationFrequency = ObservationFrequency.ANNUAL) -> float:
         """
-        Computes the price of a structured product using the Monte Carlo simulation.
+        Computes the price of an autocall structured product using the Monte Carlo simulation.
 
         Parameters:
             derivative (AbstractOption): The derivative to price.
@@ -22,9 +23,6 @@ class CallableMCPricingEngine(MCPricingEngine):
         Returns:
             float: The computed price of the derivative.
         """
-        # Define the stochastic process
-        self.process = self.stochastic_process(derivative)
-
         # Define the scheme used for the discretization
         self.scheme = self.discretization_method.value(self.process, nb_paths=self.nb_paths)
         
@@ -43,31 +41,28 @@ class CallableMCPricingEngine(MCPricingEngine):
         # NPV sum
         return np.mean(total_payoff)
 
-    def compute_coupon(self, derivative: 'CallableProduct', epsilon: float = 1e-6, max_iter: int = 100) -> float: # type: ignore
+    def compute_coupon(self, derivative: 'CallableProduct', epsilon: float = 1e-2, max_iter: int = 25, target_price: float = 100) -> float: # type: ignore
         """
         Computes the coupon of the structured product such that the price equals the target price (e.g., initial capital).
 
         Parameters:
             derivative (CallableProduct): The derivative for which to compute the coupon.
-            target_price (float): The target price (e.g., initial capital).
             epsilon (float): The tolerance for the price difference, default is 1e-6.
             max_iter (int): The maximum number of iterations for the dichotomy method, default is 100.
+            target_price (float): The target price, default is 100
 
         Returns:
             float: The computed coupon.
         """
-        # Target price = initial capital
-        target_price = derivative.capital # A modifier en fonction de l'attribut de la classe produit callable
-
         # Define the bounds for the coupon (%)
         lower_bound = 0.0
-        upper_bound = 0.5
+        upper_bound = 50.0
 
         for _ in range(max_iter):
             mid_coupon = (lower_bound + upper_bound) / 2.0
 
             # Set the coupon in the derivative
-            derivative.coupon = mid_coupon
+            derivative.coupon_rate = mid_coupon
 
             # Compute the price for the current coupon
             price = self.compute_price(derivative)
