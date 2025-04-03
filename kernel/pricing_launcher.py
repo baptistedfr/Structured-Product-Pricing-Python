@@ -95,3 +95,4 @@ class PricingLauncher:
 
         ##Report 
         # envoie des resultats avec l'interface utilisateur
+        pass
