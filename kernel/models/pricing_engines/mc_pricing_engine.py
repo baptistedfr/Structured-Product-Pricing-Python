@@ -42,20 +42,14 @@ class MCPricingEngine(AbstractPricingEngine):
         Returns:
             float: The computed price of the derivative.
         """
-
         # Define the scheme used for the discretization
         self.scheme = self.discretization_method.value(self.process, nb_paths=self.nb_paths)
         
         # Simulate paths and compute the payoff
         price_paths, _ = self.scheme.simulate_paths()
         payoffs = np.array([derivative.payoff(path) for path in price_paths])
+        
         return np.mean(payoffs) * self.market.get_discount_factor(derivative.maturity)
-    
-    # Mapping discrztization : annuel / semi annuel
-
-    # def compute_coupon():
-    #     dichotomy
-    #     while : compute_price
             
     def compute_greeks(self, derivative: AbstractOption, epsilon: float = 1e-3) -> pd.DataFrame:
         """

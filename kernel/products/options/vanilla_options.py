@@ -14,5 +14,3 @@ class EuropeanPutOption(AbstractOption):
     """
     def payoff(self, path : np.ndarray) -> float:
         return max(0, self.strike - path[-1])
-    
-    

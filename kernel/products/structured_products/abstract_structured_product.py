@@ -36,7 +36,7 @@ class AbstractStructuredProduct(ABC):
         """
         pass
 
-    @abstractmethod
+    # @abstractmethod
     def description(self) -> str:
         """
         Retourne une description textuelle du produit structuré.

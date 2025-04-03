@@ -3,6 +3,7 @@ from kernel.models.stochastic_processes import *
 from kernel.models.pricing_engines import PricingEngineType
 from kernel.products.abstract_derive import AbstractDerive
 from utils.pricing_results import PricingResults
+from kernel.products.structured_products import AbstractStructuredProduct
 from typing import Union
 
 
@@ -41,7 +42,11 @@ class PricingLauncher:
         """
         # Derivates parameters
         T = derivative.maturity
-        K = derivative.strike
+        if hasattr(derivative, "strike"):
+            K = derivative.strike
+        else:
+            # Case when the product has no strike, for exemple autocallable products
+            K = self.market.underlying_asset.last_price
 
         # Market parameters
         initial_value = self.market.underlying_asset.last_price
@@ -64,7 +69,7 @@ class PricingLauncher:
         else:
             raise ValueError("Wrong discretization process selected !")
         
-    def price(self, derivative: AbstractDerive) -> float:
+    def compute_price(self, derivative: AbstractDerive) -> float:
         """
         Calls the right pricing engine with the defined process to price the derivatives.
 
@@ -81,9 +86,8 @@ class PricingLauncher:
         
         return self.pricer.compute_price(derivative)
 
-    
     def calculate(self):
-
+        ...
         ##gérer les inputs avec l'interface 
         # init le market 
         #init le ou les pricing settings 
@@ -95,3 +99,23 @@ class PricingLauncher:
 
         ##Report 
         # envoie des resultats avec l'interface utilisateur
+    
+    def compute_coupon(self, derivative: AbstractStructuredProduct) -> float:
+        """
+        Calls the right pricing engine with the defined process to get the coupon of the derivatives.
+
+        Parameters:
+            derivatives (AbstractDerive): derivative to price
+
+        Returns:
+            float: coupon rate of the derivatives
+        """
+        if not issubclass(derivative.__class__, AbstractStructuredProduct):
+            raise TypeError("The given derivatives is not an instance of AbstractStructuredProduct")
+        
+        process = self._define_process(derivative)
+
+        self.pricer = self.pricer_type.value(market=self.market, nb_paths=self.nb_paths, nb_steps=self.nb_steps,
+                                        discretization_method=self.discretization_method, stochastic_process=process)
+        
+        return self.pricer.compute_coupon(derivative)
