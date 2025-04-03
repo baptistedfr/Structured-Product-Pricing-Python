@@ -169,6 +169,31 @@ class Market:
             self._fetch_yield_curves()
         return self.rate_curve.get_rate(maturity) / 100
     
+    def get_fwd_rate(self, start: float, end: float) -> float:
+        """
+    Computes the implied forward rate between two maturities.
+
+    Parameters:
+        start (float): Start maturity in years (e.g. 1.0 for 1 year)
+        end (float): End maturity in years (must be > start)
+
+    Returns:
+        float: Forward rate
+        """
+        if not self.rate_curve:
+            self._fetch_yield_curves()
+    
+        if end <= start:
+            raise ValueError("End maturity must be greater than start maturity")
+        if start == 0.0:
+            return self.get_rate(end)  # Spot = Forward from 0 to end
+        
+        r1 = self.get_rate(start)
+        r2 = self.get_rate(end)
+
+        fwd_rate = (r2 * end - r1 * start) / (end - start)
+        return fwd_rate
+    
     def get_discount_factor(self, maturity: float) -> float:
         """
         Computes the discount factor for a given maturity using the interpolated yield.

@@ -49,8 +49,7 @@ class MCPricingEngine(AbstractPricingEngine):
         # Simulate paths and compute the payoff
         price_paths, _ = self.scheme.simulate_paths()
         payoffs = np.array([derivative.payoff(path) for path in price_paths])
-
-        return np.mean(payoffs) * np.exp(-self.process.drift * self.process.T)
+        return np.mean(payoffs) * self.market.get_discount_factor(derivative.maturity)
     
     # Mapping discrztization : annuel / semi annuel
 

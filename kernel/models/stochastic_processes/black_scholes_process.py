@@ -8,7 +8,7 @@ class BlackScholesProcess(StochasticProcess):
     Inherits from StochasticProcess.
     """
 
-    def __init__(self, S0: float, T: float, nb_steps: int, drift: float, volatility: float):
+    def __init__(self, S0: float, T: float, nb_steps: int, drift:np.ndarray, volatility: float):
         """
         Initializes the stochastic process.
 

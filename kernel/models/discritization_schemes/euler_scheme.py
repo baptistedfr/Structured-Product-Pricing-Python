@@ -40,6 +40,6 @@ class EulerScheme(AbstractScheme):
 
         # Compute the paths using the Euler scheme
         for i in range(1, self.process.nb_steps + 1):
-            S[:, i] = S[:, i - 1] * np.exp((mu - 0.5 * sigma**2) * self.process.dt + sigma * W[:, i - 1])
+            S[:, i] = S[:, i - 1] * np.exp((mu[i-1] - 0.5 * sigma**2) * self.process.dt + sigma * W[:, i - 1])
 
         return S, None

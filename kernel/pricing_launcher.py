@@ -2,6 +2,7 @@ from kernel.market_data import Market
 from kernel.models.stochastic_processes import *
 from kernel.models.pricing_engines import PricingEngineType
 from kernel.products.abstract_derive import AbstractDerive
+from utils.pricing_results import PricingResults
 from typing import Union
 
 
@@ -44,7 +45,10 @@ class PricingLauncher:
 
         # Market parameters
         initial_value = self.market.underlying_asset.last_price
-        drift = self.market.get_rate(T)
+        delta_t = T / self.nb_steps
+        drift = [self.market.get_rate(T) if self.nb_steps == 1 
+        else self.market.get_fwd_rate(i * delta_t, (i + 1) * delta_t) for i in range(self.nb_steps)]
+
         volatility = self.market.get_volatility(K, T)
         
         if self.discretization_method.name == "EULER":
@@ -76,3 +80,18 @@ class PricingLauncher:
                                         discretization_method=self.discretization_method, stochastic_process=process)
         
         return self.pricer.compute_price(derivative)
+
+    
+    def calculate(self):
+
+        ##gérer les inputs avec l'interface 
+        # init le market 
+        #init le ou les pricing settings 
+        #init le ou les produits 
+
+        ##Pricing
+        # instancie  l'engine 
+        # engine .get_results()
+
+        ##Report 
+        # envoie des resultats avec l'interface utilisateur
