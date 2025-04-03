@@ -48,20 +48,6 @@ class MCPricingEngine(AbstractPricingEngine):
         
         # Simulate paths and compute the payoff
         price_paths, _ = self.scheme.simulate_paths()
-
-        # # Logique autocallable
-        # payoffs = []
-        # t_call = []
-        # for path in price_paths:
-
-        #     payoff, t_call = derivative.payoff(path)
-        
-        # total_payoff = []
-        # for p, t in zip(payoffs, t_call):
-        #     total_payoff.append(p * np.exp(-self.process.drift * t))
-        
-        # return np.mean(total_payoff)
-    
         payoffs = np.array([derivative.payoff(path) for path in price_paths])
 
         return np.mean(payoffs) * np.exp(-self.process.drift * self.process.T)
