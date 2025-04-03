@@ -100,6 +100,22 @@
         <h2>Résultats</h2>
         <p><strong>Prix Calculé :</strong></p>
         <p id="option-price" class="fs-2 fw-bold">-</p>
+        <h3>Grecs de l'Option</h3>
+        <table class="table table-bordered" id="greeks-table" style="margin: 0 auto; width: 50%; display: none;">
+            <thead>
+                <tr>
+                    <th>Grecs</th>
+                    <th>Valeur</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Delta</td><td id="delta">-</td></tr>
+                <tr><td>Gamma</td><td id="gamma">-</td></tr>
+                <tr><td>Vega</td><td id="vega">-</td></tr>
+                <tr><td>Theta</td><td id="theta">-</td></tr>
+                <tr><td>Rho</td><td id="rho">-</td></tr>
+            </tbody>
+        </table>
         <h3>Graphique du Payoff</h3>
         <div align ="center">
             <img id="payoff-graph" src="" alt="Graphique du Payoff" class="img-fluid" style="display: none;">

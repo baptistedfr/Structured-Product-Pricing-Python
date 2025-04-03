@@ -67,7 +67,7 @@ def pricer_view(request):
         'binary_options': json.dumps(options_data['binary_options'])
     }
     
-    return render(request, 'vanilla_options.html', context)
+    return render(request, 'options.html', context)
 
 OPTION_CLASSES = {
     'EuropeanCallOption': EuropeanCallOption,
@@ -140,6 +140,8 @@ def calculate_price_options(request):
     # Calcul du prix de l'option
     price = launcher.price(option)
     print(price)
+
+    greeks = launcher.pricer.compute_greeks(option).iloc[0].to_dict()
     # Génération du graphique de payoff
     prices = np.linspace(0.5 * strike, 1.5 * strike, 100)
     payoffs = [option.payoff([p]) for p in prices]  # Calcul des payoffs
@@ -164,5 +166,6 @@ def calculate_price_options(request):
     # Retourner les résultats dans une réponse JSON
     return JsonResponse({
         'price': round(price, 2),
+        'greeks': greeks,
         'payoff_graph': f'data:image/png;base64,{graph}'
     })

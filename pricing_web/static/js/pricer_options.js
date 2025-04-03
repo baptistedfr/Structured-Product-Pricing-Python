@@ -98,7 +98,13 @@ document.addEventListener("DOMContentLoaded", function () {
             console.log(data);
             const priceElement = document.getElementById('option-price');
             priceElement.textContent = `Price: ${data.price} USD`;
-
+            
+            document.getElementById('delta').textContent = data.greeks.delta.toFixed(4);
+            document.getElementById('gamma').textContent = data.greeks.gamma.toFixed(4);
+            document.getElementById('vega').textContent = data.greeks.vega.toFixed(4);
+            document.getElementById('theta').textContent = data.greeks.theta.toFixed(4);
+            document.getElementById('rho').textContent = data.greeks.rho.toFixed(4);
+            
             // Afficher le graphique de payoff, si disponible
             const graphElement = document.getElementById('payoff-graph');
             if (data.payoff_graph) {
