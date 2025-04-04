@@ -15,7 +15,7 @@ from kernel.market_data import InterpolationType, VolatilitySurfaceType, Market,
 from kernel.models import MCPricingEngine, EulerSchemeType, PricingEngineType
 from kernel.pricing_launcher import PricingLauncher
 import json
-from .utilities import create_option, OPTION_CLASSES
+from .utilities import create_option, OPTION_CLASSES, create_strategy
 
 
 def get_ticker_price(request):
@@ -160,64 +160,57 @@ def strategies_view(request):
             {'value': 'svi', 'label': 'SVI'},
             {'value': 'heston', 'label': 'Heston'}
         ],
-        'vanilla_options': json.dumps(options_data['vanilla_options']),
-        'path_dependent_options': json.dumps(options_data['path_dependent_options']),
-        'barrier_options': json.dumps(options_data['barrier_options']),
-        'binary_options': json.dumps(options_data['binary_options'])
     }
     
-    return render(request, 'options_strategies.html', {})
+    return render(request, 'options_strategies.html', context)
 
-def calculate_strategy_price(request):
-    # Récupération des paramètres envoyés depuis le formulaire
+def calculate_price_strategy(request):
+    # Récupération des paramètres de la requête
+    ticker = request.GET.get('ticker')
+    
     strategy_type = request.GET.get('strategy_type')
-    maturity = float(request.GET.get('maturity'))
-    strike = float(request.GET.get('strike'))
-    price_put = float(request.GET.get('strike_put', strike))  # Valeur par défaut égale à strike
-    strike_high = float(request.GET.get('strike_high', strike))  # Valeur par défaut égale à strike
-    strike_mid = float(request.GET.get('strike_mid', strike))  # Valeur par défaut égale à strike
-    strike_mid1 = float(request.GET.get('strike_mid1', strike))  # Valeur par défaut égale à strike
-    strike_mid2 = float(request.GET.get('strike_mid2', strike))  # Valeur par défaut égale à strike
-    maturity_far = float(request.GET.get('maturity_far', maturity))  # Valeur par défaut égale à maturity
-    
-    # Sélection de la stratégie en fonction de la donnée 'strategy_type'
-    if strategy_type == 'straddle':
-        strategy = Straddle(maturity, strike)
-    elif strategy_type == 'strangle':
-        strategy = Strangle(maturity, strike, price_put)
-    elif strategy_type == 'bullspread':
-        strategy = BullSpread(maturity, strike, strike_high)
-    elif strategy_type == 'bearspread':
-        strategy = BearSpread(maturity, strike, strike_high)
-    elif strategy_type == 'butterflyspread':
-        strategy = ButterflySpread(maturity, strike, strike_mid, strike_high)
-    elif strategy_type == 'condorspread':
-        strategy = CondorSpread(maturity, strike, strike_mid1, strike_mid2, strike_high)
-    elif strategy_type == 'calendarspread':
-        strategy = CalendarSpread(strike, maturity, maturity_far)
-    elif strategy_type == 'collar':
-        strategy = Collar(maturity, strike, price_put)
-    else:
-        return JsonResponse({'error': 'Stratégie inconnue'}, status=400)
+    maturity = float(request.GET.get('maturity', 1))  # Maturité par défaut à 1 an
+    strike_base = float(request.GET.get('strike'))
+    strikes = []
+    i = 0
+    while f"strike{i}" in request.GET:
+        strikes.append(float(request.GET.get(f"strike{i}")))
+        i += 1
 
-    # Calcul du prix de l'option et des Grecs
-    price = strategy.calculate_price()
-    greeks = strategy.calculate_greeks()
+    maturity_calendar = float(request.GET.get('maturity_calendar', None))  # Maturité pour CalendarSpread (optionnel)
+    nb_steps = int(request.GET.get('nb_steps', 100))
 
-    # Générer le graphique du payoff
-    prices = np.linspace(0.5 * strike, 1.5 * strike, 100)
-    payoffs = [strategy.payoff(p) for p in prices]
-    
-    
+    # Crée la stratégie en fonction du type et des paramètres
+    strategy = create_strategy(
+            strategy_type, 
+            maturity, 
+            strike_base,
+            strikes,
+            maturity_calendar,
+        )
 
-    # Retourner les résultats dans la réponse JSON
+    # Création du marché avec les paramètres définis
+    market = Market(
+        underlying_name=ticker,
+        rate_curve_type=RateCurveType.RF_US_TREASURY,
+        interpolation_type=InterpolationType.SVENSSON,
+        volatility_surface_type=VolatilitySurfaceType.SVI,
+        calendar_convention=CalendarConvention.ACT_360,
+        obs_frequency=None
+    )
+
+    # Lanceur de calcul du prix
+    pricer_type = PricingEngineType.MC
+    launcher = PricingLauncher(
+        market=market,
+        discretization_method=EulerSchemeType.EULER,
+        nb_paths=nb_steps,
+        nb_steps=100,
+        pricer_type=pricer_type
+    )
+    price = launcher.compute_price(strategy)
+    print(price)
+    greeks = launcher.pricer.compute_greeks(strategy).iloc[0].to_dict()
     return JsonResponse({
         'price': round(price, 2),
-        'greeks': {
-            'Delta': round(greeks['Delta'], 4),
-            'Gamma': round(greeks['Gamma'], 4),
-            'Vega': round(greeks['Vega'], 4),
-            'Theta': round(greeks['Theta'], 4),
-            'Rho': round(greeks['Rho'], 4),
-        },
     })

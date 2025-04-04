@@ -1,175 +1,111 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Pricer de strategies optionnelles{% endblock %}
+{% block title %}Pricer de Stratégies Optionnelles{% endblock %}
 
 {% block content %}
-
-<div class="container mt-5">
-    <h1 class="text-center">Calcul des Stratégies d'Options</h1>
+<div class="container mt-4">
+    <h1 class="text-center">Pricer de Stratégies Optionnelles</h1>
+    <p class="text-center">Choisissez une stratégie d'options et remplissez les champs nécessaires pour calculer le prix.</p>
     
-    <form id="option-form">
-        <div class="mb-3">
-            <label for="strategy_type" class="form-label">Type de Stratégie</label>
-            <select id="strategy_type" class="form-select" required>
-                <option value="straddle">Straddle</option>
-                <option value="strangle">Strangle</option>
-                <option value="bullspread">Bull Spread</option>
-                <option value="bearspread">Bear Spread</option>
-                <option value="butterflyspread">Butterfly Spread</option>
-                <option value="condorspread">Condor Spread</option>
-                <option value="calendarspread">Calendar Spread</option>
-                <option value="collar">Collar</option>
-            </select>
-        </div>
+    <form id="strategy-form" 
+        data-straddle-options='{{ straddle_options|safe }}'
+        data-bull-spread-options='{{ bull_spread_options|safe }}'
+        data-bear-spread-options='{{ bear_spread_options|safe }}'
+        data-butterfly-spread-options='{{ butterfly_spread_options|safe }}'
+        data-condor-spread-options='{{ condor_spread_options|safe }}'
+        data-calendar-spread-options='{{ calendar_spread_options|safe }}'>
+        
+        <div class="row mb-3">
+            <label class="form-label">Choisissez une Stratégie</label>
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" id="straddle" name="strategy_type" value="straddle" checked>
+                <label class="btn btn-outline-primary" for="straddle">Straddle</label>
+                
+                <input type="radio" class="btn-check" id="bull_spread" name="strategy_type" value="bull_spread">
+                <label class="btn btn-outline-primary" for="bull_spread">Bull Spread</label>
+                
+                <input type="radio" class="btn-check" id="bear_spread" name="strategy_type" value="bear_spread">
+                <label class="btn btn-outline-primary" for="bear_spread">Bear Spread</label>
+                
+                <input type="radio" class="btn-check" id="butterfly_spread" name="strategy_type" value="butterfly_spread">
+                <label class="btn btn-outline-primary" for="butterfly_spread">Butterfly Spread</label>
 
-        <div class="mb-3">
-            <label for="maturity" class="form-label">Échéance (en années)</label>
-            <input type="number" id="maturity" class="form-control" step="0.01" required>
-        </div>
+                <input type="radio" class="btn-check" id="condor_spread" name="strategy_type" value="condor_spread">
+                <label class="btn btn-outline-primary" for="condor_spread">Condor Spread</label>
 
-        <div class="mb-3">
-            <label for="strike" class="form-label">Prix d'Exercice</label>
-            <input type="number" id="strike" class="form-control" required>
-        </div>
-
-        <!-- Champs supplémentaires pour certaines stratégies -->
-        <div id="strangle-fields" style="display: none;">
-            <div class="mb-3">
-                <label for="strike_put" class="form-label">Prix d'Exercice du Put</label>
-                <input type="number" id="strike_put" class="form-control">
+                <input type="radio" class="btn-check" id="collar_spread" name="strategy_type" value="collar_spread">
+                <label class="btn btn-outline-primary" for="collar_spread">Collar Spread</label>
+                
+                <input type="radio" class="btn-check" id="calendar_spread" name="strategy_type" value="calendar_spread">
+                <label class="btn btn-outline-primary" for="calendar_spread">Calendar Spread</label>
             </div>
         </div>
 
-        <div id="bullspread-fields" style="display: none;">
-            <div class="mb-3">
-                <label for="strike_high" class="form-label">Prix d'Exercice du Call Vendu</label>
-                <input type="number" id="strike_high" class="form-control">
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="ticker" class="form-label">Ticker</label>
+                <select class="form-select" id="ticker" name="ticker" required>
+                    {% for ticker in tickers %}
+                    <option value="{{ ticker }}">{{ ticker }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="ticker-price" class="form-label">Prix du Ticker</label>
+                <input type="text" class="form-control" id="ticker-price" name="ticker-price" readonly>
             </div>
         </div>
 
-        <div id="butterflyspread-fields" style="display: none;">
-            <div class="mb-3">
-                <label for="strike_mid" class="form-label">Prix d'Exercice des Options Vendues</label>
-                <input type="number" id="strike_mid" class="form-control">
+        <!-- Strike(s) - Champs dynamiques selon la stratégie -->
+        <div id="strike-fields-container">
+            <div class="row mb-3">
+                <label for="strike" class="form-label">Strike</label>
+                <input type="number" class="form-control" id="strike" name="strike" value="100" required>
             </div>
         </div>
 
-        <div id="condorspread-fields" style="display: none;">
-            <div class="mb-3">
-                <label for="strike_mid1" class="form-label">Premier Prix d'Exercice du Call Vendu</label>
-                <input type="number" id="strike_mid1" class="form-control">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label for="maturity" class="form-label">Maturité (années)</label>
+                <input type="number" class="form-control" id="maturity" name="maturity" value="1" required>
             </div>
-            <div class="mb-3">
-                <label for="strike_mid2" class="form-label">Deuxième Prix d'Exercice du Call Vendu</label>
-                <input type="number" id="strike_mid2" class="form-control">
+            <<div class="col-md-4 mb-3">
+                <label for="maturity_calendar" class="form-label" id="label-maturity-calendar">Maturité Far Calendar</label>
+                <input type="number" class="form-control" id="maturity_calendar" name="maturity_calendar" value="2">
             </div>
-        </div>
-
-        <div id="calendarspread-fields" style="display: none;">
-            <div class="mb-3">
-                <label for="maturity_far" class="form-label">Échéance de l'Option Lointaine</label>
-                <input type="number" id="maturity_far" class="form-control">
+            <div class="col-md-4 mb-3">
+                <label for="nb_steps" class="form-label">Nombre de Steps</label>
+                <input type="number" class="form-control" id="nb_steps" name="nb_steps" value="10000" required>
             </div>
         </div>
 
-        <div id="collar-fields" style="display: none;">
-            <div class="mb-3">
-                <label for="strike_put" class="form-label">Prix d'Exercice du Put</label>
-                <input type="number" id="strike_put" class="form-control">
-            </div>
+        <div class="mb-3" id="barrier-fields" style="display: none;">
+            <label for="barrier" class="form-label">Barrière</label>
+            <input type="number" class="form-control" id="barrier" name="barrier">
         </div>
 
-        <button type="submit" class="btn btn-primary">Calculer</button>
+        <button type="submit" class="btn btn-success w-100">Calculer le Prix</button>
     </form>
 
+    <div id="loading-spinner" style="display: none; text-align: center; margin-top: 20px;">
+        <div class="spinner-border" role="status">
+            <span class="sr-only"></span>
+        </div>
+        <p>Calcul en cours...</p>
+    </div>
+
     <div class="mt-4 text-center">
-        <h2>Résultats de la Stratégie</h2>
-
-        <!-- Affichage du prix calculé -->
+        <h2>Résultats</h2>
         <p><strong>Prix Calculé :</strong></p>
-        <p id="option-price" class="fs-2 fw-bold">-</p>
-
-        <!-- Tableau des Grecs -->
-        <h3>Grecs de l'Option</h3>
-        <table class="table table-bordered" id="greeks-table" style="margin: 0 auto; width: 50%; display: none;">
-            <thead>
-                <tr>
-                    <th>Grecs</th>
-                    <th>Valeur</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr><td>Delta</td><td id="delta">-</td></tr>
-                <tr><td>Gamma</td><td id="gamma">-</td></tr>
-                <tr><td>Vega</td><td id="vega">-</td></tr>
-                <tr><td>Theta</td><td id="theta">-</td></tr>
-                <tr><td>Rho</td><td id="rho">-</td></tr>
-            </tbody>
-        </table>
-
-        <!-- Graphique du Payoff -->
+        <p id="strategy-price" class="fs-2 fw-bold">-</p>
         <h3>Graphique du Payoff</h3>
-        <div align="center">
-            <img id="payoff-graph" src="" alt="Graphique du Payoff" class="img-fluid" style="display: none;">
+        <div id="chart-container" style="display: flex; justify-content: center; margin-top: 20px;">
+            <canvas id="payoffChart" width="800" height="600"></canvas>
         </div>
     </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    document.getElementById('strategy_type').addEventListener('change', function() {
-        const strategyType = this.value;
-
-        // Cacher tous les champs supplémentaires
-        document.querySelectorAll('[id$="-fields"]').forEach(el => el.style.display = 'none');
-
-        // Afficher les champs appropriés en fonction de la stratégie sélectionnée
-        if (strategyType === 'strangle') {
-            document.getElementById('strangle-fields').style.display = 'block';
-        } else if (strategyType === 'bullspread') {
-            document.getElementById('bullspread-fields').style.display = 'block';
-        } else if (strategyType === 'butterflyspread') {
-            document.getElementById('butterflyspread-fields').style.display = 'block';
-        } else if (strategyType === 'condorspread') {
-            document.getElementById('condorspread-fields').style.display = 'block';
-        } else if (strategyType === 'calendarspread') {
-            document.getElementById('calendarspread-fields').style.display = 'block';
-        } else if (strategyType === 'collar') {
-            document.getElementById('collar-fields').style.display = 'block';
-        }
-    });
-
-    document.getElementById('option-form').addEventListener('submit', function (event) {
-        event.preventDefault();
-
-        let formData = new FormData(this);
-        let queryString = new URLSearchParams(formData).toString();
-
-        fetch('http://127.0.0.1:8000/calculate_strategy_price?' + queryString)
-            .then(response => response.json())
-            .then(data => {
-                console.log(data);
-
-                // Mettre à jour le prix de l'option
-                document.getElementById('option-price').textContent = data.price;
-
-                // Mettre à jour les Grecs dans le tableau
-                document.getElementById('delta').textContent = data.greeks.Delta.toFixed(4);
-                document.getElementById('gamma').textContent = data.greeks.Gamma.toFixed(4);
-                document.getElementById('vega').textContent = data.greeks.Vega.toFixed(4);
-                document.getElementById('theta').textContent = data.greeks.Theta.toFixed(4);
-                document.getElementById('rho').textContent = data.greeks.Rho.toFixed(4);
-
-                // Afficher le tableau des Grecs
-                document.getElementById('greeks-table').style.display = 'table';
-
-                // Mettre à jour l'image du payoff
-                const graphElement = document.getElementById('payoff-graph');
-                graphElement.src = data.payoff_graph; // Met à jour l'élément image avec l'URL du graphique
-                graphElement.style.display = 'block'; // Affiche le graphique
-            })
-            .catch(error => console.error('Erreur requête AJAX:', error));
-    });
-</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/strategy_pricer.js' %}"></script>
 {% endblock %}

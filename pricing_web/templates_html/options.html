@@ -60,7 +60,7 @@
             </div>
             <div class="col-md-4 mb-3">
                 <label for="nb_steps" class="form-label">Nombre de Steps</label>
-                <input type="number" class="form-control" id="nb_steps" name="nb_steps" value="100" required>
+                <input type="number" class="form-control" id="nb_steps" name="nb_steps" value="10000" required>
             </div>
         </div>
         <div class="mb-3" id="barrier-fields" style="display: none;">
@@ -115,8 +115,9 @@
                 <tr><td>Rho</td><td id="rho">-</td></tr>
             </tbody>
         </table>
+        <br>
         <h3>Graphique du Payoff</h3>
-        
+        <br>
         <div id="chart-container" style="display: flex; justify-content: center; margin-top: 20px;">
             <canvas id="payoffChart" width="800" height="600"></canvas>
         </div>

@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const payoffs = payoffData.payoffs;
     
         // Formater les prix uniquement pour les labels (en les arrondissant sans décimales)
-        const formattedLabels = prices.map(price => price.toFixed(2)); // Pas de décimales dans les labels
+        const formattedLabels = prices.map(price => price.toFixed(4)); // Pas de décimales dans les labels
     
         window.payoffChartInstance = new Chart(ctx, {
             type: 'line',
