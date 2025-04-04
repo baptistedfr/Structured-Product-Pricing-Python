@@ -24,7 +24,7 @@ class Strangle(AbstractOptionStrategy):
     """
     Représente une stratégie de strangle.
     """
-    def __init__(self, maturity: float, strike_call: float, strike_put: float, 
+    def __init__(self, maturity: float, strike_put: float, strike_call: float, 
                  position_call: bool = True, position_put: bool = True):
         """
         Initialise une stratégie de strangle.
@@ -35,9 +35,9 @@ class Strangle(AbstractOptionStrategy):
         :param position_call: Position sur le call (True pour long, False pour short).
         :param position_put: Position sur le put (True pour long, False pour short).
         """
-        self.call = EuropeanCallOption(maturity, strike_call)
-        self.put = EuropeanPutOption(maturity, strike_put)
-        super().__init__([(self.call, position_call), (self.put, position_put)])
+        call = EuropeanCallOption(maturity, strike_call)
+        put = EuropeanPutOption(maturity, strike_put)
+        super().__init__([(call, position_call), (put, position_put)])
 
 class BullSpread(AbstractOptionStrategy):
     """
@@ -159,7 +159,7 @@ class Collar(AbstractOptionStrategy):
     """
     Représente une stratégie de collar.
     """
-    def __init__(self, maturity: float, strike_call: float, strike_put: float, 
+    def __init__(self, maturity: float, strike_put: float, strike_call: float, 
                  position_call: bool = False, position_put: bool = True):
         """
         Initialise une stratégie de collar.

@@ -170,7 +170,6 @@ def calculate_price_strategy(request):
     
     strategy_type = request.GET.get('strategy_type')
     maturity = float(request.GET.get('maturity', 1))  # Maturité par défaut à 1 an
-    strike_base = float(request.GET.get('strike'))
     strikes = []
     i = 0
     while f"strike{i}" in request.GET:
@@ -184,7 +183,6 @@ def calculate_price_strategy(request):
     strategy = create_strategy(
             strategy_type, 
             maturity, 
-            strike_base,
             strikes,
             maturity_calendar,
         )

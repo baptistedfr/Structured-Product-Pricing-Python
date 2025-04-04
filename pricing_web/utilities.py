@@ -42,21 +42,20 @@ STRATEGY_CLASSES = {
     'Collar': Collar,
 }
 
-def create_strategy(strategy_type, maturity, strike_call, strikes=None, maturity_calendar=None):
+def create_strategy(strategy_type, maturity, strikes=None, maturity_calendar=None):
     """
     Crée une stratégie d'option basée sur le type et les paramètres fournis, où `strikes` est une liste.
     """
 
     if strategy_type == 'Straddle':
         # Straddle avec un seul strike pour le call et le put
-        return Straddle(maturity, strike_call)
+        return Straddle(maturity, strikes[0])
     
     elif strategy_type == 'Strangle':
         # Strangle avec deux strikes différents pour le call et le put
         if strikes is None or len(strikes) < 2:
             raise ValueError("Strangle nécessite deux strikes dans la liste: un pour le call et un pour le put")
-        strike_put = strikes[1]  # Le deuxième strike est pour le put
-        return Strangle(maturity, strike_call, strike_put)
+        return Strangle(maturity, strikes[0], strikes[1])
 
     elif strategy_type == 'BullSpread':
         # BullSpread avec deux strikes : un bas (low) et un haut (high)
@@ -88,19 +87,17 @@ def create_strategy(strategy_type, maturity, strike_call, strikes=None, maturity
 
     elif strategy_type == 'CalendarSpread':
         # CalendarSpread avec deux maturités et deux strikes : call et put
-        if strike_call is None or strikes is None or len(strikes) < 1:
-            raise ValueError("CalendarSpread nécessite des strikes 'call' et 'put' dans la liste")
-        strike_put = strikes[0]  # Le premier strike dans la liste est pour le put
+        if strikes is None or len(strikes) < 1:
+            raise ValueError("CalendarSpread nécessite des strikes 'call' et 'put' dans la liste")  # Le premier strike dans la liste est pour le put
         if maturity_calendar is None:
             raise ValueError("CalendarSpread nécessite une seconde maturité (maturity_calendar)")
-        return CalendarSpread(strike_call, maturity, maturity_calendar)
+        return CalendarSpread(strikes[0], maturity, maturity_calendar)
 
     elif strategy_type == 'Collar':
         # Collar avec un strike pour le call et un strike pour le put
-        if strike_call is None or strikes is None or len(strikes) < 1:
+        if strikes is None or len(strikes) < 2:
             raise ValueError("Collar nécessite des strikes 'call' et 'put' dans la liste")
-        strike_put = strikes[0]  # Le premier strike dans la liste est pour le put
-        return Collar(maturity, strike_call, strike_put)
-
+         
+        return Collar(maturity, strikes[0], strikes[1])
     else:
         raise ValueError(f"Type de stratégie '{strategy_type}' non reconnu.")
