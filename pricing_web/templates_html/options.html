@@ -2,7 +2,6 @@
 {% load static %}
 
 {% block title %}Pricer d'Options{% endblock %}
-
 {% block content %}
 <div class="container mt-4">
     <h1 class="text-center">Pricer d'Options</h1>
@@ -117,11 +116,13 @@
             </tbody>
         </table>
         <h3>Graphique du Payoff</h3>
-        <div align ="center">
-            <img id="payoff-graph" src="" alt="Graphique du Payoff" class="img-fluid" style="display: none;">
+        
+        <div id="chart-container" style="display: flex; justify-content: center; margin-top: 20px;">
+            <canvas id="payoffChart" width="800" height="600"></canvas>
         </div>
+    
     </div>
 </div>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{% static 'js/pricer_options.js' %}"></script>
 {% endblock %}

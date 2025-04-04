@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('Agg')
+
 from django.shortcuts import render
 from django.http import JsonResponse
 import matplotlib.pyplot as plt
@@ -12,6 +15,15 @@ from kernel.market_data import InterpolationType, VolatilitySurfaceType, Market,
 from kernel.models import MCPricingEngine, EulerSchemeType, PricingEngineType
 from kernel.pricing_launcher import PricingLauncher
 import json
+from .utilities import create_option, OPTION_CLASSES
+
+
+def get_ticker_price(request):
+    ticker = request.GET.get('ticker')
+    df_tickers = pd.read_excel('data/underlying_data.xlsx')
+    ticker_price = df_tickers.loc[df_tickers['Ticker'] == ticker, "Last Price"].iloc[0]
+    return JsonResponse({'ticker_price': str(ticker_price)})
+
 # Page d'accueil
 def home_page(request):
     return render(request, 'home.html')
@@ -32,6 +44,12 @@ def get_options():
         ],
         'barrier_options': [
             {'value': 'UpAndInCallOption', 'label': 'Up-and-In Call'},
+            {'value': 'UpAndOutCallOption', 'label': 'Up-and-Out Call'},
+            {'value': 'DownAndInCallOption', 'label': 'Down-and-In Call'},
+            {'value': 'DownAndOutCallOption', 'label': 'Down-and-Out Call'},
+            {'value': 'UpAndInPutOption', 'label': 'Up-and-In Put'},
+            {'value': 'DownAndInPutOption', 'label': 'Down-and-In Put'},
+            {'value': 'UpAndOutPutOption', 'label': 'Up-and-Out Put'},
             {'value': 'DownAndOutPutOption', 'label': 'Down-and-Out Put'}
         ],
         'binary_options': [
@@ -39,15 +57,6 @@ def get_options():
             {'value': 'BinaryPutOption', 'label': 'Binary Put'}
         ]
     }
-
-def home_page(request):
-    return render(request, 'home.html')
-
-def get_ticker_price(request):
-    ticker = request.GET.get('ticker')
-    df_tickers = pd.read_excel('data/underlying_data.xlsx')
-    ticker_price = df_tickers.loc[df_tickers['Ticker'] == ticker, "Last Price"].iloc[0]
-    return JsonResponse({'ticker_price': str(ticker_price)})
 
 def pricer_view(request):
     df_tickers = pd.read_excel('data/underlying_data.xlsx')
@@ -57,9 +66,9 @@ def pricer_view(request):
     context = {
         'tickers': df_tickers['Ticker'].unique().tolist(),
         'vol_types': [
-            {'value': 'constant', 'label': 'Volatilité Constante'},
+            #{'value': 'constant', 'label': 'Volatilité Constante'},
             {'value': 'svi', 'label': 'SVI'},
-            {'value': 'heston', 'label': 'Heston'}
+            #{'value': 'heston', 'label': 'Heston'}
         ],
         'vanilla_options': json.dumps(options_data['vanilla_options']),
         'path_dependent_options': json.dumps(options_data['path_dependent_options']),
@@ -69,26 +78,7 @@ def pricer_view(request):
     
     return render(request, 'options.html', context)
 
-OPTION_CLASSES = {
-    'EuropeanCallOption': EuropeanCallOption,
-    'EuropeanPutOption': EuropeanPutOption,
-    'AsianCallOption': AsianCallOption,
-    'AsianPutOption': AsianPutOption,
-    'BinaryCallOption': BinaryCallOption,
-    'BinaryPutOption': BinaryPutOption,
-    'UpAndInCallOption': UpAndInCallOption,
-    'DownAndOutPutOption': DownAndOutPutOption
-}
 
-def create_option(option_type, maturity, strike, barrier, coupon):
-    # Crée l'option en fonction du type et des paramètres fournis
-    if option_type in ['UpAndInCallOption', 'DownAndOutPutOption']:  # Options barrières
-        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, barrier=barrier)
-    elif option_type in ['BinaryCallOption', 'BinaryPutOption']:  # Options binaires
-        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, coupon=coupon)
-    else:  # Options simples
-        print(OPTION_CLASSES[option_type])
-        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike)
     
 def calculate_price_options(request):
     # Récupération des paramètres de la requête
@@ -138,7 +128,7 @@ def calculate_price_options(request):
     )
 
     # Calcul du prix de l'option
-    price = launcher.price(option)
+    price = launcher.compute_price(option)
     print(price)
 
     greeks = launcher.pricer.compute_greeks(option).iloc[0].to_dict()
@@ -146,26 +136,88 @@ def calculate_price_options(request):
     prices = np.linspace(0.5 * strike, 1.5 * strike, 100)
     payoffs = [option.payoff([p]) for p in prices]  # Calcul des payoffs
 
-    # Créez un graphique
-    plt.figure(figsize=(8, 5))
-    plt.plot(prices, payoffs, label='Payoff')
-    plt.axvline(strike, color='red', linestyle='--', label='Strike')
-    plt.title('Payoff Graph')
-    plt.xlabel('Spot Price')
-    plt.ylabel('Payoff')
-    plt.legend()
-    plt.grid()
-
-    # Sauvegarde du graphique dans un buffer (en mémoire) sans appel à plt.show()
-    buffer = io.BytesIO()
-    plt.savefig(buffer, format='png')
-    buffer.seek(0)
-    graph = base64.b64encode(buffer.getvalue()).decode('utf-8')
-    plt.close()
-    print(price)
+    
     # Retourner les résultats dans une réponse JSON
     return JsonResponse({
         'price': round(price, 2),
         'greeks': greeks,
-        'payoff_graph': f'data:image/png;base64,{graph}'
+        'payoff_data': {
+        'prices': prices.tolist(),
+        'payoffs': payoffs
+        }
+    })
+
+
+def strategies_view(request):
+    df_tickers = pd.read_excel('data/underlying_data.xlsx')
+    
+    options_data = get_options()  # Récupération des options
+    
+    context = {
+        'tickers': df_tickers['Ticker'].unique().tolist(),
+        'vol_types': [
+            {'value': 'constant', 'label': 'Volatilité Constante'},
+            {'value': 'svi', 'label': 'SVI'},
+            {'value': 'heston', 'label': 'Heston'}
+        ],
+        'vanilla_options': json.dumps(options_data['vanilla_options']),
+        'path_dependent_options': json.dumps(options_data['path_dependent_options']),
+        'barrier_options': json.dumps(options_data['barrier_options']),
+        'binary_options': json.dumps(options_data['binary_options'])
+    }
+    
+    return render(request, 'options_strategies.html', {})
+
+def calculate_strategy_price(request):
+    # Récupération des paramètres envoyés depuis le formulaire
+    strategy_type = request.GET.get('strategy_type')
+    maturity = float(request.GET.get('maturity'))
+    strike = float(request.GET.get('strike'))
+    price_put = float(request.GET.get('strike_put', strike))  # Valeur par défaut égale à strike
+    strike_high = float(request.GET.get('strike_high', strike))  # Valeur par défaut égale à strike
+    strike_mid = float(request.GET.get('strike_mid', strike))  # Valeur par défaut égale à strike
+    strike_mid1 = float(request.GET.get('strike_mid1', strike))  # Valeur par défaut égale à strike
+    strike_mid2 = float(request.GET.get('strike_mid2', strike))  # Valeur par défaut égale à strike
+    maturity_far = float(request.GET.get('maturity_far', maturity))  # Valeur par défaut égale à maturity
+    
+    # Sélection de la stratégie en fonction de la donnée 'strategy_type'
+    if strategy_type == 'straddle':
+        strategy = Straddle(maturity, strike)
+    elif strategy_type == 'strangle':
+        strategy = Strangle(maturity, strike, price_put)
+    elif strategy_type == 'bullspread':
+        strategy = BullSpread(maturity, strike, strike_high)
+    elif strategy_type == 'bearspread':
+        strategy = BearSpread(maturity, strike, strike_high)
+    elif strategy_type == 'butterflyspread':
+        strategy = ButterflySpread(maturity, strike, strike_mid, strike_high)
+    elif strategy_type == 'condorspread':
+        strategy = CondorSpread(maturity, strike, strike_mid1, strike_mid2, strike_high)
+    elif strategy_type == 'calendarspread':
+        strategy = CalendarSpread(strike, maturity, maturity_far)
+    elif strategy_type == 'collar':
+        strategy = Collar(maturity, strike, price_put)
+    else:
+        return JsonResponse({'error': 'Stratégie inconnue'}, status=400)
+
+    # Calcul du prix de l'option et des Grecs
+    price = strategy.calculate_price()
+    greeks = strategy.calculate_greeks()
+
+    # Générer le graphique du payoff
+    prices = np.linspace(0.5 * strike, 1.5 * strike, 100)
+    payoffs = [strategy.payoff(p) for p in prices]
+    
+    
+
+    # Retourner les résultats dans la réponse JSON
+    return JsonResponse({
+        'price': round(price, 2),
+        'greeks': {
+            'Delta': round(greeks['Delta'], 4),
+            'Gamma': round(greeks['Gamma'], 4),
+            'Vega': round(greeks['Vega'], 4),
+            'Theta': round(greeks['Theta'], 4),
+            'Rho': round(greeks['Rho'], 4),
+        },
     })
