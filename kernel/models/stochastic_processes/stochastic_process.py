@@ -7,7 +7,7 @@ class StochasticProcess(ABC):
     Abstract class representing a stochastic process.
     """
 
-    def __init__(self, S0: float, T: float, nb_steps: int):
+    def __init__(self, S0: float, T: float, nb_steps: int,nb_factors: int = 1):
         """
         Initializes the stochastic process.
 
@@ -26,6 +26,7 @@ class StochasticProcess(ABC):
         self.nb_steps = nb_steps
         self.T = T
         self.dt = dt
+        self.nb_factors = nb_factors
 
     @abstractmethod
     def get_random_increments(self, nb_paths: int, seed: int = 4012) -> Union[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
@@ -41,4 +42,31 @@ class StochasticProcess(ABC):
                 or
             tuple(np.ndarray): The generated increments for the brownian motions if the process has multiple sources of randomness
         """
+        pass
+
+class OneFactorStochasticProcess(StochasticProcess):
+    """
+    Abstract class for one-factor processes (e.g. Black-Scholes).
+    """
+
+    @abstractmethod
+    def get_drift(self, t: int, x: np.ndarray) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def get_volatility(self, t: int, x: np.ndarray) -> np.ndarray:
+        pass
+
+
+class TwoFactorStochasticProcess(StochasticProcess):
+    @abstractmethod
+    def get_drift(self, t: int, x: np.ndarray) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def get_vol_drift(self, t: int, v: np.ndarray) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def get_vol_vol(self, t: int, v: np.ndarray) -> np.ndarray:
         pass

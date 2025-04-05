@@ -28,4 +28,11 @@ class ObservationFrequency(Enum):
     ANNUAL = 1          # Annuel
     SEMIANNUAL = 2      # Semi-annuel
     QUARTERLY = 4       # Trimestriel
-    MONTHLY = 12        # Mensuel
+    MONTHLY = 12
+            # Mensuel
+class Model(Enum):
+    """
+    Enum mapping model names to their respective classes.
+    """
+    BLACK_SCHOLES = "Black-Scholes"
+    HESTON = "Heston"
