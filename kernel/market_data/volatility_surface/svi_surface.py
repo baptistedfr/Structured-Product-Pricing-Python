@@ -126,13 +126,13 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
         for maturity in unique_maturities:
             # Filter data for the current maturity
             slice_data = self.option_data[self.option_data["Maturity"] == maturity]
-            log_moneyness = np.log(slice_data['Strike'] / self.spot)
-            market_vols = slice_data["Implied Volatility"]
-            strikes = slice_data["Strike"]
+            log_moneyness = np.log(slice_data['Strike'].values / self.spot)
+            market_vols = slice_data["Implied Volatility"].values / 100
+            strikes = slice_data["Strike"].values
 
             # Compute vega weights
             vega = self.compute_weighting_vega(self.spot,
-                                               slice_data["Maturity"],
+                                               slice_data["Maturity"].values,
                                                market_vols,
                                                strikes)
 
@@ -165,6 +165,13 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
     def get_volatility(self, strike: float, maturity: float) -> float:
         """
         Get the volatility interpolated by the volatility surface at this specific point (Strike * Maturity).
+
+        Parameters:
+            strike (float): strike price
+            maturity (float): maturity in years
+
+        Returns:
+            float: implied volatility
         """
         if not self.interpolators:
             raise Exception("SVI surface not calibrated yet!")
@@ -173,7 +180,7 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
         interpolated_params = np.array([self.interpolators[i](maturity) for i in range(5)])
         log_moneyness = np.log(strike / self.spot)
         total_variance = self.svi_total_variance(log_moneyness, interpolated_params)
-        return np.sqrt(total_variance / maturity) / 100
+        return np.sqrt(total_variance / maturity)
 
     def display_smiles(self) -> None:
         """
@@ -215,7 +222,7 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
             # Set labels and title
             ax.set_title(f"Maturity: {int(maturity*252)} days", fontsize=12, fontweight='bold')
             ax.set_xlabel('Moneyness (% ATM)', fontsize=10)
-            ax.set_ylabel('Implied Volatility (%)', fontsize=10)
+            ax.set_ylabel('SVI Implied Volatility (%)', fontsize=10)
             ax.legend(fontsize=8)
             ax.grid(True, linestyle='--', alpha=0.7)
 
@@ -233,7 +240,6 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
         if not self.interpolators:
             raise Exception("SVI surface not calibrated yet!")
 
-        # Option data
         spot = self.option_data["Spot"].values[0]
         strikes = np.linspace(spot / 2, spot * 2, 50)
         maturities = np.linspace(min(self.option_data["Maturity"]), max(self.option_data["Maturity"]), 50)
@@ -242,12 +248,8 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
         vol_surface = np.zeros((len(strikes), len(maturities)))
         for i, strike in enumerate(strikes):
             for j, maturity in enumerate(maturities):
-                interpolated_params = np.array([self.interpolators[k](maturity) for k in range(5)])
-                log_moneyness = np.log(strike / self.spot)
-                total_variance = self.svi_total_variance(log_moneyness, interpolated_params)
-                vol_surface[i, j] = np.sqrt(total_variance / maturity)
-
-        # Plot the surface
+                vol_surface[i, j] = self.get_volatility(strike, maturity) * 100
+                
         maturities = maturities * 252
         strikes = (strikes / self.spot) * 100
         X, Y = np.meshgrid(maturities, strikes)
@@ -255,23 +257,17 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
         ax = fig.add_subplot(111, projection='3d')
         surf = ax.plot_surface(X, Y, vol_surface, cmap='viridis', edgecolor='k', alpha=0.8)
 
-        # Add option points
         option_strikes = (self.option_data["Strike"] / self.spot) * 100
         option_maturities = self.option_data["Maturity"] * 252
         option_vols = self.option_data["Implied Volatility"]
         ax.scatter(option_maturities, option_strikes, option_vols, color='red', label='Options', s=20)
 
-        # Add color bar
         cbar = fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10)
         cbar.set_label('Implied Volatility', fontsize=12)
-
-        # Set labels and title
         ax.set_xlabel('Maturity (days)', fontsize=12, labelpad=10)
         ax.set_ylabel('Moneyness (% ATM)', fontsize=12, labelpad=10)
         ax.set_zlabel('Implied Volatility (%)', fontsize=12, labelpad=10)
-        ax.set_title('Implied Volatility Surface', fontsize=14, fontweight='bold')
-
-        # Add gridlines
+        ax.set_title('SVI Implied Volatility Surface', fontsize=14, fontweight='bold')
         ax.grid(True, linestyle='--', alpha=0.5)
         ax.legend(fontsize=10)
 
