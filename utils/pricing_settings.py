@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-#from kernel.models.pricing_engines import PricingEngineType
+#from kernel.models.pricing_engines.enum_pricing_engine import PricingEngineTypeBis
 from kernel.tools import *
 from kernel.market_data import InterpolationType, VolatilitySurfaceType
 
@@ -16,7 +16,8 @@ class PricingSettings:
         self.rate_curve_type: Optional[RateCurveType] = None
         self.interpolation_type: Optional[InterpolationType] = None
         self.volatility_surface_type: Optional[VolatilitySurfaceType] = None
-        self.obs_frequency: Optional[ObservationFrequency] = None
-        #self.pricing_engine_type: Optional[PricingEngineType] = None
+        self.obs_frequency: Optional[ObservationFrequency] = ObservationFrequency.ANNUAL
+        self.pricing_engine_type = None
         self.underlying_name: Optional[str] = None
+        self.compute_callable_coupons = False
 

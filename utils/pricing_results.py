@@ -7,6 +7,7 @@ class PricingResults:
     std_dev: Optional[float] = None
     confidence_level: float = 0.95
     greeks: Dict[str, float] = field(default_factory=dict)
+    coupon_callable: Optional[float] = None
 
     @property
     def lower_bound(self) -> Optional[float]:

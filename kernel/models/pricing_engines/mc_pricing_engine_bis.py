@@ -1,4 +1,4 @@
-from .abstract_pricing_engine import AbstractPricingEngine
+from .abstract_pricing_engine import AbstractPricingEngineBis
 from ..stochastic_processes import StochasticProcess
 from kernel.products.options.abstract_option import AbstractOption
 from kernel.market_data.market import Market
@@ -11,7 +11,7 @@ from kernel.models.discritization_schemes.euler_scheme import EulerSchemeBis
 import numpy as np
 import pandas as pd
 
-class MCPricingEngineBis(AbstractPricingEngine):
+class MCPricingEngineBis(AbstractPricingEngineBis):
     """
     A Monte Carlo pricing engine for classic financial derivatives (no barrier, no asian payoff ...)
 
@@ -58,7 +58,6 @@ class MCPricingEngineBis(AbstractPricingEngine):
         return pricing_results
     
     def _set_stochastic_process(self,derivative: AbstractOption) -> None: #peut etre revoir cetté méthode pour la rendre plus générique
-        time_to_maturity = derivative.maturity 
 
         T = derivative.maturity
         if hasattr(derivative, "strike"):
@@ -93,7 +92,7 @@ class MCPricingEngineBis(AbstractPricingEngine):
         return price
 
 
-    def compute_price(self):
+    def get_price(self):
         pass
 
     def compute_greeks(self):

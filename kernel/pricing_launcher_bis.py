@@ -1,6 +1,6 @@
 from kernel.market_data import Market
 from kernel.models.stochastic_processes import *
-from kernel.models.pricing_engines import PricingEngineType
+from kernel.models.pricing_engines.enum_pricing_engine import PricingEngineTypeBis
 from kernel.products.abstract_derive import AbstractDerive
 from utils.pricing_results import PricingResults
 from kernel.products.structured_products import AbstractStructuredProduct
@@ -38,13 +38,11 @@ class PricingLauncherBis:
         self._init_market()
 
         # Initialize pricer
-        #engine = PricingEngineType[self.settings.pricing_engine_type.name].value(
-            #market=self.market, nb_paths=self.settings.nb_paths, nb_steps=self.settings.nb_steps,
-            #discretization_method=self.settings.discretization_method)
+        engine = PricingEngineTypeBis[self.settings.pricing_engine_type.name].value(market=self.market,settings=self.settings)
         
-        engine = MCPricingEngineBis(market = self.market,settings=self.settings) #temporary
+        #engine = MCPricingEngineBis(market = self.market,settings=self.settings) #temporaire, faudra modifer les autres engines
         results = engine.get_results(derivative=derivative)
-        stop=""
+        
         return results #temporary
 
 

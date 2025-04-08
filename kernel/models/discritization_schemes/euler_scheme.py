@@ -74,7 +74,6 @@ class EulerSchemeBis:
             mu = drift / x
 
             paths[:, i + 1] = x + drift * dt + vol  * dW_i
-            S[:, i+1] = S[:, i - 1] * np.exp((mu - 0.5 * vol**2) * dt + vol * dW[:, i ])
         return paths
 
     def _simulate_two_factor(self, process: TwoFactorStochasticProcess, nb_paths: int, seed: int) -> np.ndarray:
