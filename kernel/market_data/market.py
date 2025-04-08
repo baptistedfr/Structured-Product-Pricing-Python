@@ -149,10 +149,14 @@ class Market:
         # Calibrate the rate curve if not done yet
         if self.rate_curve is None:
             self._fetch_yield_curves()
+        
+        if self.volatility_surface_type.name == "LOCAL":
+            svi = self.volatility_surface_type["LOCAL"](option_data=option_data, rate_curve=self.rate_curve)
+            volatility_surface = self.volatility_surface_type.value(option_data=option_data, rate_curve=self.rate_curve, svi_surface=svi)
+        else:
+            volatility_surface = self.volatility_surface_type.value(option_data=option_data, rate_curve=self.rate_curve)
 
-        volatility_surface = self.volatility_surface_type.value(option_data=option_data, rate_curve=self.rate_curve)
         volatility_surface.calibrate_surface()
-
         self.volatility_surface = volatility_surface
 
     def get_rate(self, maturity: float) -> float:

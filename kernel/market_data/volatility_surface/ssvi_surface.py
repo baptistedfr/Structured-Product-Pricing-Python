@@ -25,6 +25,7 @@ class SSVIVolatilitySurface(AbstractVolatilitySurface):
         self.spot = option_data["Spot"].values[0]
         self.ssvi_params = None
         self.ssvi_ATM_params = None
+        self.is_calibrated = False
 
     @staticmethod
     def _ssvi_atm_variance(maturity: np.ndarray[float], ssvi_atm_params: np.ndarray[float]) -> float:
@@ -199,6 +200,7 @@ class SSVIVolatilitySurface(AbstractVolatilitySurface):
 
         if res.success:
             self.ssvi_params = res.x
+            self.is_calibrated = True
         else:
             raise Exception(f"SSVI calibration failed : {res.message}")
         
@@ -226,7 +228,6 @@ class SSVIVolatilitySurface(AbstractVolatilitySurface):
     def display_smiles(self):
         """
         Displays the SSVI volatility smiles for all maturities in the option data.
-
         Each subplot corresponds to a specific maturity and shows both market data and the interpolated smile.
         """
         if self.ssvi_params is None:

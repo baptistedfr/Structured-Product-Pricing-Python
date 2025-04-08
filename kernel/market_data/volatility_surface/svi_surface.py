@@ -50,6 +50,7 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
         self.rate_curve = rate_curve
         self.svi_params_by_maturity = {}
         self.interpolators = {}
+        self.is_calibrated = False
 
     @staticmethod
     def svi_total_variance(k: np.ndarray[float], svi_params: np.ndarray[float]) -> float:
@@ -146,6 +147,7 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
 
             if result.success:
                 self.svi_params_by_maturity[maturity] = result.x
+                self.is_calibrated = True
             else:
                 raise Exception(f"SVI calibration failed for maturity {maturity}: {result.message}")
 
@@ -185,7 +187,6 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
     def display_smiles(self) -> None:
         """
         Displays the SVI volatility smiles for all maturities in the option data.
-
         Each subplot corresponds to a specific maturity and shows both market data and the interpolated smile.
         """
         if not self.interpolators:
