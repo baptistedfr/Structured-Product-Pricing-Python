@@ -34,6 +34,9 @@ document.addEventListener("DOMContentLoaded", function () {
         // Détermine combien de strikes sont nécessaires en fonction de la stratégie
         let numberOfStrikes = 1; // Par défaut, une seule strike
         switch (selectedStrategyType) {
+            case "strangle":
+                numberOfStrikes = 2;
+                break;
             case "bull_spread":
                 numberOfStrikes = 2;
                 break;
@@ -73,8 +76,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Fonction pour rendre le graphique du payoff
-    function renderPayoffChart(payoffData) {
-        const ctx = document.getElementById('payoffChart').getContext('2d');
+    function renderPayoffChartStrategy(payoffData) {
+        const ctx = document.getElementById('payoffChartStrategy').getContext('2d');
     
         // Si un graphique existe déjà, on le détruit pour en recréer un propre
         if (window.payoffChartInstance) {
@@ -133,11 +136,54 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
-
+    function updateGreeksDisplay(greeks) {
+        const greekTable = document.getElementById("greeks-table");
+        const fields = ['delta', 'gamma', 'vega', 'theta', 'rho'];
+    
+        if (!greeks || typeof greeks !== 'object') {
+            console.error("Grecs non valides :", greeks);
+            greekTable.style.display = 'none';
+            return;
+        }
+    
+        fields.forEach(field => {
+            const cell = document.getElementById(field);
+            if (cell && greeks[field] !== undefined) {
+                cell.textContent = parseFloat(greeks[field]).toFixed(4);
+            } else if (cell) {
+                cell.textContent = "-";
+            }
+        });
+    
+        greekTable.style.display = "table";  // Affiche la table si tout est ok
+    }
     // Gérer l'événement de soumission du formulaire
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
-        // Logique pour calculer le prix et afficher le graphique du payoff ici
+    form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        spinner.style.display = 'block';
+
+        const formData = new FormData(this);
+        const queryString = new URLSearchParams(formData).toString();
+
+        fetch('/calculate_price_strategy?' + queryString)
+            .then(response => response.json())
+            .then(data => {
+                spinner.style.display = 'none';
+                resultPrice.textContent = `Price: ${data.price} USD`;
+
+                updateGreeksDisplay(data.greeks);
+
+                if (data.payoff_data && data.payoff_data.prices && data.payoff_data.payoffs) {
+                    console.log("Données de payoff:", data.payoff_data);
+                    renderPayoffChartStrategy(data.payoff_data);
+                } else {
+                    console.warn("Données de payoff manquantes.");
+                }
+            })
+            .catch(err => {
+                spinner.style.display = 'none';
+                console.error("Erreur requête:", err);
+            });
     });
 
     // Gérer les changements de stratégie

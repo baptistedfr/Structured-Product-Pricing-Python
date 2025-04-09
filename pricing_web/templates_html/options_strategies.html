@@ -22,6 +22,9 @@
                 <input type="radio" class="btn-check" id="straddle" name="strategy_type" value="straddle" checked>
                 <label class="btn btn-outline-primary" for="straddle">Straddle</label>
                 
+                <input type="radio" class="btn-check" id="strangle" name="strategy_type" value="strangle" checked>
+                <label class="btn btn-outline-primary" for="strangle">Strangle</label>
+
                 <input type="radio" class="btn-check" id="bull_spread" name="strategy_type" value="bull_spread">
                 <label class="btn btn-outline-primary" for="bull_spread">Bull Spread</label>
                 
@@ -34,8 +37,8 @@
                 <input type="radio" class="btn-check" id="condor_spread" name="strategy_type" value="condor_spread">
                 <label class="btn btn-outline-primary" for="condor_spread">Condor Spread</label>
 
-                <input type="radio" class="btn-check" id="collar_spread" name="strategy_type" value="collar_spread">
-                <label class="btn btn-outline-primary" for="collar_spread">Collar Spread</label>
+                <!-- <input type="radio" class="btn-check" id="collar_spread" name="strategy_type" value="collar_spread">
+                <label class="btn btn-outline-primary" for="collar_spread">Collar Spread</label> -->
                 
                 <input type="radio" class="btn-check" id="calendar_spread" name="strategy_type" value="calendar_spread">
                 <label class="btn btn-outline-primary" for="calendar_spread">Calendar Spread</label>
@@ -75,9 +78,17 @@
                 <label for="maturity_calendar" class="form-label" id="label-maturity-calendar">Maturité Far Calendar</label>
                 <input type="number" class="form-control" id="maturity_calendar" name="maturity_calendar" value="2">
             </div>
+            <div class="mb-3">
+                <label for="vol_type" class="form-label">Type de Volatilité</label>
+                <select class="form-select" id="vol_type" name="vol_type" required>
+                    {% for vol in vol_types %}
+                    <option value="{{ vol.value }}">{{ vol.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div class="col-md-4 mb-3">
-                <label for="nb_steps" class="form-label">Nombre de Steps</label>
-                <input type="number" class="form-control" id="nb_steps" name="nb_steps" value="10000" required>
+                <label for="nb_paths" class="form-label">Nombre de Paths MC</label>
+                <input type="number" class="form-control" id="nb_paths" name="nb_paths" value="10000" required>
             </div>
         </div>
 
@@ -100,9 +111,26 @@
         <h2>Résultats</h2>
         <p><strong>Prix Calculé :</strong></p>
         <p id="strategy-price" class="fs-2 fw-bold">-</p>
+        <h3>Grecs de l'Option</h3>
+        <table class="table table-bordered" id="greeks-table" style="margin: 0 auto; width: 50%; display: none;">
+            <thead>
+                <tr>
+                    <th>Grecs</th>
+                    <th>Valeur</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Delta</td><td id="delta">-</td></tr>
+                <tr><td>Gamma</td><td id="gamma">-</td></tr>
+                <tr><td>Vega</td><td id="vega">-</td></tr>
+                <tr><td>Theta</td><td id="theta">-</td></tr>
+                <tr><td>Rho</td><td id="rho">-</td></tr>
+            </tbody>
+        </table>
+        <br>
         <h3>Graphique du Payoff</h3>
         <div id="chart-container" style="display: flex; justify-content: center; margin-top: 20px;">
-            <canvas id="payoffChart" width="800" height="600"></canvas>
+            <canvas id="payoffChartStrategy" width="800" height="600"></canvas>
         </div>
     </div>
 </div>

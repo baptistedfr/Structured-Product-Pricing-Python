@@ -10,12 +10,15 @@ import io
 import base64
 
 from kernel.products import *
-from kernel.tools import CalendarConvention
+from kernel.tools import CalendarConvention, ObservationFrequency, Model
 from kernel.market_data import InterpolationType, VolatilitySurfaceType, Market, RateCurveType
 from kernel.models import MCPricingEngine, EulerSchemeType, PricingEngineType
 from kernel.pricing_launcher import PricingLauncher
+from kernel.pricing_launcher_bis import PricingLauncherBis
+from utils.pricing_settings import PricingSettings
 import json
-from .utilities import create_option, OPTION_CLASSES, create_strategy
+from kernel.models.pricing_engines.enum_pricing_engine import PricingEngineTypeBis
+from .utilities import create_option, OPTION_CLASSES, create_strategy, VOL_CONV
 
 
 def get_ticker_price(request):
@@ -40,7 +43,12 @@ def get_options():
         ],
         'path_dependent_options': [
             {'value': 'AsianCallOption', 'label': 'Asian Call'},
-            {'value': 'AsianPutOption', 'label': 'Asian Put'}
+            {'value': 'AsianPutOption', 'label': 'Asian Put'},
+            {'value': 'LookbackCallOption', 'label': 'Lookback Call'},
+            {'value': 'LookbackPutOption', 'label': 'Lookback Put'},
+            {'value': 'FloatingStrikeCallOption', 'label': 'Floating Strike Call'},
+            {'value': 'FloatingStrikePutOption', 'label': 'Floating Strike Put'}
+
         ],
         'barrier_options': [
             {'value': 'UpAndInCallOption', 'label': 'Up-and-In Call'},
@@ -68,7 +76,8 @@ def pricer_view(request):
         'vol_types': [
             #{'value': 'constant', 'label': 'Volatilité Constante'},
             {'value': 'svi', 'label': 'SVI'},
-            #{'value': 'heston', 'label': 'Heston'}
+            {'value': 'ssvi', 'label': 'SSVI'},
+            {'value': 'local', 'label': 'LocalVolatility'},
         ],
         'vanilla_options': json.dumps(options_data['vanilla_options']),
         'path_dependent_options': json.dumps(options_data['path_dependent_options']),
@@ -79,64 +88,50 @@ def pricer_view(request):
     return render(request, 'options.html', context)
 
 
-    
 def calculate_price_options(request):
     # Récupération des paramètres de la requête
-    ticker = request.GET.get('ticker')
-    option_type = request.GET.get('option_type')
-    subtype = request.GET.get('subtype')
-    strike = float(request.GET.get('strike', 100))
-    maturity = float(request.GET.get('maturity', 1))
-    nb_steps = int(request.GET.get('nb_steps', 100))
-    vol_type = request.GET.get('vol_type')
-    constant_vol = float(request.GET.get('constant_vol', 0)) if request.GET.get('constant_vol') else None
-    barrier = float(request.GET.get('barrier', None)) if request.GET.get('barrier') else None
-    coupon = float(request.GET.get('coupon', None))  if request.GET.get('coupon') else None # Pour les options binaires (digitale)
-    # Définition du type de volatilité
-    if vol_type == "SVI":
-        volatility_surface_type = VolatilitySurfaceType.SVI
-    elif vol_type == "constant":
-        volatility_surface_type = VolatilitySurfaceType.SVI
-    else:
-        volatility_surface_type = VolatilitySurfaceType.SVI
 
-    # Création du marché avec les paramètres définis
-    market = Market(
-        underlying_name=ticker,
-        rate_curve_type=RateCurveType.RF_US_TREASURY,
-        interpolation_type=InterpolationType.SVENSSON,
-        volatility_surface_type=volatility_surface_type,
-        calendar_convention=CalendarConvention.ACT_360,
-        obs_frequency=None
-    )
+    constant_vol = float(request.GET.get('constant_vol', 0)) if request.GET.get('constant_vol') else None
 
     # Validation du type d'option
-    if subtype not in OPTION_CLASSES:
+    if request.GET.get('subtype') not in OPTION_CLASSES:
         return JsonResponse({'error': 'Option type not recognized'}, status=400)
+    # Définition du type de volatilité
+    option, nb_steps = create_option(option_type = request.GET.get('subtype'), 
+                                     maturity = float(request.GET.get('maturity', 1)), 
+                                     strike = float(request.GET.get('strike', 100)), 
+                                     barrier = float(request.GET.get('barrier', None)) if request.GET.get('barrier') else None, 
+                                     coupon = float(request.GET.get('coupon', None))  if request.GET.get('coupon') else None)
 
-    # Création de l'option selon le type
-    option = create_option(subtype, maturity, strike, barrier, coupon)
-
-    # Création du lanceur de prix avec les paramètres du marché et de l'option
-    pricer_type = PricingEngineType.MC  # Type de moteur de prix (Monte Carlo)
-    launcher = PricingLauncher(
-        market=market,
-        discretization_method=EulerSchemeType.EULER,
-        nb_paths=nb_steps,
-        nb_steps=100,
-        pricer_type=pricer_type
-    )
-
-    # Calcul du prix de l'option
-    price = launcher.compute_price(option)
+    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+    print(volatility_surface_type)
+    settings_dict = {
+        "underlying_name": request.GET.get('ticker'),
+        "rate_curve_type": RateCurveType.RF_US_TREASURY,
+        "interpolation_type": InterpolationType.SVENSSON,
+        "volatility_surface_type": volatility_surface_type,
+        "obs_frequency": None,
+        "day_count_convention": CalendarConvention.ACT_360,
+        "model": Model.BLACK_SCHOLES,
+        "pricing_engine_type": PricingEngineTypeBis.MC_BIS,
+        "nb_paths": int(request.GET.get('nb_steps', 100)),
+        "nb_steps": nb_steps,
+        "random_seed": 4012,
+        "compute_greeks": False,
+    }
+    settings = PricingSettings(**settings_dict)
+    
+    launcher_bis= PricingLauncherBis(pricing_settings=settings)
+    results = launcher_bis.get_results(option)
+   
+    price = results.price
     print(price)
 
-    greeks = launcher.pricer.compute_greeks(option).iloc[0].to_dict()
+    greeks = results.greeks
     # Génération du graphique de payoff
-    prices = np.linspace(0.5 * strike, 1.5 * strike, 100)
+    prices = np.linspace(0.5 * float(request.GET.get('strike', 100)), 1.5 * float(request.GET.get('strike', 100)), 100)
     payoffs = [option.payoff([p]) for p in prices]  # Calcul des payoffs
 
-    
     # Retourner les résultats dans une réponse JSON
     return JsonResponse({
         'price': round(price, 2),
@@ -151,64 +146,71 @@ def calculate_price_options(request):
 def strategies_view(request):
     df_tickers = pd.read_excel('data/underlying_data.xlsx')
     
-    options_data = get_options()  # Récupération des options
-    
     context = {
         'tickers': df_tickers['Ticker'].unique().tolist(),
-        'vol_types': [
-            {'value': 'constant', 'label': 'Volatilité Constante'},
+         'vol_types': [
+            #{'value': 'constant', 'label': 'Volatilité Constante'},
             {'value': 'svi', 'label': 'SVI'},
-            {'value': 'heston', 'label': 'Heston'}
+            {'value': 'ssvi', 'label': 'SSVI'},
+            {'value': 'local', 'label': 'LocalVolatility'},
         ],
     }
     
     return render(request, 'options_strategies.html', context)
 
 def calculate_price_strategy(request):
-    # Récupération des paramètres de la requête
-    ticker = request.GET.get('ticker')
-    
-    strategy_type = request.GET.get('strategy_type')
-    maturity = float(request.GET.get('maturity', 1))  # Maturité par défaut à 1 an
+
     strikes = []
     i = 0
     while f"strike{i}" in request.GET:
         strikes.append(float(request.GET.get(f"strike{i}")))
         i += 1
 
-    maturity_calendar = float(request.GET.get('maturity_calendar', None))  # Maturité pour CalendarSpread (optionnel)
-    nb_steps = int(request.GET.get('nb_steps', 100))
-
     # Crée la stratégie en fonction du type et des paramètres
     strategy = create_strategy(
-            strategy_type, 
-            maturity, 
-            strikes,
-            maturity_calendar,
+            strategy_type = request.GET.get('strategy_type'), 
+            maturity = float(request.GET.get('maturity', 1)), 
+            strikes = strikes,
+            maturity_calendar = float(request.GET.get('maturity_calendar', None))  # Maturité pour CalendarSpread (optionnel),
         )
+    
+    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+    
+    settings_dict = {
+        "underlying_name": request.GET.get('ticker'),
+        "rate_curve_type": RateCurveType.RF_US_TREASURY,
+        "interpolation_type": InterpolationType.SVENSSON,
+        "volatility_surface_type": volatility_surface_type,
+        "obs_frequency": None,
+        "day_count_convention": CalendarConvention.ACT_360,
+        "model": Model.BLACK_SCHOLES,
+        "pricing_engine_type": PricingEngineTypeBis.MC_BIS,
+        "nb_paths": int(request.GET.get('nb_steps', 100)),
+        "nb_steps": 1000,
+        "random_seed": 4012,
+        "compute_greeks": False,
+    }
+    settings = PricingSettings(**settings_dict)
 
-    # Création du marché avec les paramètres définis
-    market = Market(
-        underlying_name=ticker,
-        rate_curve_type=RateCurveType.RF_US_TREASURY,
-        interpolation_type=InterpolationType.SVENSSON,
-        volatility_surface_type=VolatilitySurfaceType.SVI,
-        calendar_convention=CalendarConvention.ACT_360,
-        obs_frequency=None
-    )
+    launcher = PricingLauncherBis(settings)
 
-    # Lanceur de calcul du prix
-    pricer_type = PricingEngineType.MC
-    launcher = PricingLauncher(
-        market=market,
-        discretization_method=EulerSchemeType.EULER,
-        nb_paths=nb_steps,
-        nb_steps=100,
-        pricer_type=pricer_type
-    )
-    price = launcher.compute_price(strategy)
+    results = launcher.get_results(strategy)
+    
+
+    
+    price = results.price
     print(price)
-    greeks = launcher.pricer.compute_greeks(strategy).iloc[0].to_dict()
+    greeks = results.greeks
+    prices = np.linspace(0.5 * min(strikes), 1.5 * max(strikes), 100)
+    print(prices)
+    payoffs = [strategy.payoff([p]) for p in prices]  # Calcul des payoffs
+    print(payoffs)
+    # Retourner les résultats dans une réponse JSON
     return JsonResponse({
         'price': round(price, 2),
+        'greeks': greeks,
+        'payoff_data': {
+        'prices': prices.tolist(),
+        'payoffs': payoffs
+        }
     })

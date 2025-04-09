@@ -1,10 +1,23 @@
 from kernel.products import *
+from kernel.market_data.volatility_surface.enums_volatility import VolatilitySurfaceType
+
+VOL_CONV = {
+    "svi" : VolatilitySurfaceType.SVI,
+    "ssvi" : VolatilitySurfaceType.SSVI,
+    "local" : VolatilitySurfaceType.LOCAL,
+}
 
 OPTION_CLASSES = {
     'EuropeanCallOption': EuropeanCallOption,
     'EuropeanPutOption': EuropeanPutOption,
+
     'AsianCallOption': AsianCallOption,
     'AsianPutOption': AsianPutOption,
+    'FloatingStrikeCallOption': FloatingStrikeCallOption,
+    'FloatingStrikePutOption': FloatingStrikePutOption,
+    'LookbackCallOption': LookbackCallOption,
+    'LookbackPutOption': LookbackPutOption,
+
     'BinaryCallOption': BinaryCallOption,
     'BinaryPutOption': BinaryPutOption,
     'UpAndInCallOption': UpAndInCallOption,
@@ -21,12 +34,15 @@ def create_option(option_type, maturity, strike, barrier, coupon):
     # Crée l'option en fonction du type et des paramètres fournis
     if option_type in ['UpAndInCallOption', 'UpAndOutCallOption','DownAndInCallOption','DownAndOutCallOption',
                        'UpAndInPutOption', 'DownAndInPutOption', 'UpAndOutPutOption','DownAndOutPutOption']:  # Options barrières
-        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, barrier=barrier)
+        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, barrier=barrier), 252 * maturity
     elif option_type in ['BinaryCallOption', 'BinaryPutOption']:  # Options binaires
-        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, coupon=coupon)
+        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, coupon=coupon), 1
     else:  # Options simples
-        print(OPTION_CLASSES[option_type])
-        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike)
+        if option_type in ['EuropeanCallOption', 'EuropeanPutOption']:
+            nb_steps = 2
+        else:
+            nb_steps = 252 * maturity
+        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike), nb_steps
     
 
     # Pour les stratégies optionnelles
@@ -47,45 +63,47 @@ def create_strategy(strategy_type, maturity, strikes=None, maturity_calendar=Non
     Crée une stratégie d'option basée sur le type et les paramètres fournis, où `strikes` est une liste.
     """
 
-    if strategy_type == 'Straddle':
+    if strategy_type == 'straddle':
         # Straddle avec un seul strike pour le call et le put
         return Straddle(maturity, strikes[0])
     
-    elif strategy_type == 'Strangle':
+    elif strategy_type == 'strangle':
         # Strangle avec deux strikes différents pour le call et le put
         if strikes is None or len(strikes) < 2:
             raise ValueError("Strangle nécessite deux strikes dans la liste: un pour le call et un pour le put")
-        return Strangle(maturity, strikes[0], strikes[1])
+        return Strangle(maturity, strike_put = min(strikes), strike_call = max(strikes))
 
-    elif strategy_type == 'BullSpread':
+    elif strategy_type == 'bull_spread':
         # BullSpread avec deux strikes : un bas (low) et un haut (high)
         if strikes is None or len(strikes) < 2:
             raise ValueError("BullSpread nécessite deux strikes dans la liste: un bas et un haut")
-        strike_low, strike_high = strikes[0], strikes[1]
+        strike_low, strike_high = min(strikes), max(strikes)
         return BullSpread(maturity, strike_low, strike_high)
 
-    elif strategy_type == 'BearSpread':
+    elif strategy_type == 'bear_spread':
         # BearSpread avec deux strikes : un haut (high) et un bas (low)
         if strikes is None or len(strikes) < 2:
             raise ValueError("BearSpread nécessite deux strikes dans la liste: un bas et un haut")
-        strike_low, strike_high = strikes[0], strikes[1]
+        strike_low, strike_high = min(strikes), max(strikes)
         return BearSpread(maturity, strike_low, strike_high)
 
-    elif strategy_type == 'ButterflySpread':
+    elif strategy_type == 'butterfly_spread':
         # ButterflySpread avec trois strikes : low, mid, high
-        if strikes is None or len(strikes) < 3:
+        if strikes is None or len(strikes) != 3:
             raise ValueError("ButterflySpread nécessite trois strikes dans la liste: low, mid, high")
+        strikes.sort()
         strike_low, strike_mid, strike_high = strikes[0], strikes[1], strikes[2]
         return ButterflySpread(maturity, strike_low, strike_mid, strike_high)
 
-    elif strategy_type == 'CondorSpread':
+    elif strategy_type == 'condor_spread':
         # CondorSpread avec quatre strikes : low, mid1, mid2, high
-        if strikes is None or len(strikes) < 4:
+        if strikes is None or len(strikes) != 4:
             raise ValueError("CondorSpread nécessite quatre strikes dans la liste: low, mid1, mid2, high")
+        strikes.sort()
         strike_low, strike_mid1, strike_mid2, strike_high = strikes[0], strikes[1], strikes[2], strikes[3]
         return CondorSpread(maturity, strike_low, strike_mid1, strike_mid2, strike_high)
 
-    elif strategy_type == 'CalendarSpread':
+    elif strategy_type == 'calendar_spread':
         # CalendarSpread avec deux maturités et deux strikes : call et put
         if strikes is None or len(strikes) < 1:
             raise ValueError("CalendarSpread nécessite des strikes 'call' et 'put' dans la liste")  # Le premier strike dans la liste est pour le put
@@ -93,11 +111,11 @@ def create_strategy(strategy_type, maturity, strikes=None, maturity_calendar=Non
             raise ValueError("CalendarSpread nécessite une seconde maturité (maturity_calendar)")
         return CalendarSpread(strikes[0], maturity, maturity_calendar)
 
-    elif strategy_type == 'Collar':
-        # Collar avec un strike pour le call et un strike pour le put
-        if strikes is None or len(strikes) < 2:
-            raise ValueError("Collar nécessite des strikes 'call' et 'put' dans la liste")
+    # elif strategy_type == 'Collar':
+    #     # Collar avec un strike pour le call et un strike pour le put
+    #     if strikes is None or len(strikes) < 2:
+    #         raise ValueError("Collar nécessite des strikes 'call' et 'put' dans la liste")
          
-        return Collar(maturity, strikes[0], strikes[1])
+    #     return Collar(maturity, strikes[0], strikes[1])
     else:
         raise ValueError(f"Type de stratégie '{strategy_type}' non reconnu.")

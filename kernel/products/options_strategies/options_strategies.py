@@ -63,7 +63,7 @@ class BearSpread(AbstractOptionStrategy):
     Représente une stratégie de bear spread.
     """
     def __init__(self, maturity: float, strike_low: float, strike_high: float, 
-                 position_low: bool = True, position_high: bool = False):
+                 position_low: bool = False, position_high: bool = True):
         """
         Initialise une stratégie de bear spread.
 
