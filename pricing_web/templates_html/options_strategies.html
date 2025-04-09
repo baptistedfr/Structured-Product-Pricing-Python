@@ -22,7 +22,7 @@
                 <input type="radio" class="btn-check" id="straddle" name="strategy_type" value="straddle" checked>
                 <label class="btn btn-outline-primary" for="straddle">Straddle</label>
                 
-                <input type="radio" class="btn-check" id="strangle" name="strategy_type" value="strangle" checked>
+                <input type="radio" class="btn-check" id="strangle" name="strategy_type" value="strangle">
                 <label class="btn btn-outline-primary" for="strangle">Strangle</label>
 
                 <input type="radio" class="btn-check" id="bull_spread" name="strategy_type" value="bull_spread">
@@ -107,7 +107,7 @@
         <p>Calcul en cours...</p>
     </div>
 
-    <div class="mt-4 text-center">
+    <div id="strategy-result-container" class="mt-4 text-center" style="display: none;">
         <h2>Résultats</h2>
         <p><strong>Prix Calculé :</strong></p>
         <p id="strategy-price" class="fs-2 fw-bold">-</p>

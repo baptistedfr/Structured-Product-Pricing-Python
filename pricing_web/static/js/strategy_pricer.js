@@ -168,6 +168,9 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/calculate_price_strategy?' + queryString)
             .then(response => response.json())
             .then(data => {
+                document.getElementById("strategy-result-container").style.display = "block";
+                document.getElementById("greeks-table").style.display = "table";
+
                 spinner.style.display = 'none';
                 resultPrice.textContent = `Price: ${data.price} USD`;
 

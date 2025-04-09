@@ -18,7 +18,7 @@ from kernel.pricing_launcher_bis import PricingLauncherBis
 from utils.pricing_settings import PricingSettings
 import json
 from kernel.models.pricing_engines.enum_pricing_engine import PricingEngineTypeBis
-from .utilities import create_option, OPTION_CLASSES, create_strategy, VOL_CONV
+from .utilities import create_option, OPTION_CLASSES, create_strategy, VOL_CONV, OBS_FREQ, create_autocall
 
 
 def get_ticker_price(request):
@@ -213,4 +213,75 @@ def calculate_price_strategy(request):
         'prices': prices.tolist(),
         'payoffs': payoffs
         }
+    })
+
+def autocall_pricing_view(request):
+    df_tickers = pd.read_excel('data/underlying_data.xlsx')
+    
+    context = {
+        'tickers': df_tickers['Ticker'].unique().tolist(),
+         'vol_types': [
+            #{'value': 'constant', 'label': 'Volatilité Constante'},
+            {'value': 'svi', 'label': 'SVI'},
+            {'value': 'ssvi', 'label': 'SSVI'},
+            {'value': 'local', 'label': 'LocalVolatility'},
+        ],
+        'observation_frequencies': [
+            {'value': 'annual', 'label': 'Annuelles'},
+            {'value': 'semiannual', 'label': 'Semestrielles'},
+            {'value': 'quarterly', 'label': 'Trimestrielles'},
+            {'value': 'monthly', 'label': 'Mensuelles'}
+        ]
+    }
+    
+    return render(request, 'autocall_pricing.html', context)
+
+
+def calculate_autocall_coupon(request):
+    print(request.GET.get('plusCheckbox', False))
+    print(request.GET.get('securityCheckbox', False))
+    obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
+    autocall = create_autocall(autocall_type = request.GET.get('autocall_type'), 
+                            maturity = float(request.GET.get('maturity', 1)), 
+                            obs_frequency = obs_frequency, 
+                            barriere_capital = float(request.GET.get('barriereCapital', None)), 
+                            barriere_rappel = float(request.GET.get('barriereRappel', None)),
+                            barriere_coupon = float(request.GET.get('barriereCoupon', None))  if request.GET.get('barriereCoupon') else None,
+                            is_plus = request.GET.get('plusCheckbox', False) == 'on',
+                            is_security = request.GET.get('securityCheckbox', False) == 'on')
+
+    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+    
+
+    settings_dict = {
+        "underlying_name": request.GET.get('ticker'),
+        "rate_curve_type": RateCurveType.RF_US_TREASURY,
+        "interpolation_type": InterpolationType.SVENSSON,
+        "volatility_surface_type": volatility_surface_type,
+        "obs_frequency": obs_frequency,
+        "day_count_convention": CalendarConvention.ACT_360,
+        "model": Model.BLACK_SCHOLES,
+        "pricing_engine_type": PricingEngineTypeBis.CALLABLE_MC_BIS,
+        "nb_paths": int(request.GET.get('nb_steps', 100)),
+        "nb_steps": 1000,
+        "random_seed": 4012,
+        "compute_greeks": False,
+    }
+    settings = PricingSettings(**settings_dict)
+    
+    launcher_autocall = PricingLauncherBis(pricing_settings = settings)
+
+    settings.compute_callable_coupons = True
+    results_autocall = launcher_autocall.get_results(autocall)
+   
+    coupon = results_autocall.coupon_callable
+    print(coupon)
+
+    greeks = results_autocall.greeks
+   
+
+    # Retourner les résultats dans une réponse JSON
+    return JsonResponse({
+        'coupon': round(coupon, 2),
+        'greeks': greeks,
     })

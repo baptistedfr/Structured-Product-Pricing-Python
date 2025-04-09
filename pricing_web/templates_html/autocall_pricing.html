@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pricer d'Autocalls{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center">Pricer d'Autocalls</h1>
+    
+    <form id="strategy-form" 
+        data-phoenix-options='{{ phoenix_options|safe }}'
+        data-eagle-options='{{ eagle_options|safe }}'>
+        
+        <div class="row mb-3">
+            <label class="form-label">Choisissez le produit autocallable</label>
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" id="phoenix" name="autocall_type" value="phoenix" checked>
+                <label class="btn btn-outline-primary" for="phoenix">Phoenix</label>
+                
+                <input type="radio" class="btn-check" id="eagle" name="autocall_type" value="eagle">
+                <label class="btn btn-outline-primary" for="eagle">Eagle</label>
+            </div>
+        </div>
+
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="ticker" class="form-label">Ticker</label>
+                <select class="form-select" id="ticker" name="ticker" required>
+                    {% for ticker in tickers %}
+                    <option value="{{ ticker }}">{{ ticker }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="ticker-price" class="form-label">Prix du Ticker</label>
+                <input type="text" class="form-control" id="ticker-price" name="ticker-price" readonly>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label for="barriereCapital" class="form-label">Barrière de Capital (%)</label>
+                <input type="number" class="form-control" id="barriereCapital" name="barriereCapital" value="60" required>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="barriereRappel" class="form-label">Barrière de Rappel (%)</label>
+                <input type="number" class="form-control" id="barriereRappel" name="barriereRappel" value="100">
+            </div>
+            <div class="col-md-4 mb-3" id="barriereCoupon-container" style="display: none;">
+                <label for="barriereCoupon" class="form-label">Barrière de Coupon (%)</label>
+                <input type="number" class="form-control" id="barriereCoupon" name="barriereCoupon" value="80">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-check-label" for="securityCheckbox">
+                    <input type="checkbox" class="form-check-input" id="securityCheckbox" name="securityCheckbox">
+                    Security
+                </label>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-check-label" for="plusCheckbox">
+                    <input type="checkbox" class="form-check-input" id="plusCheckbox" name="plusCheckbox">
+                    Plus
+                </label>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label for="maturity" class="form-label">Maturité (années)</label>
+                <input type="number" class="form-control" id="maturity" name="maturity" value="5" required>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="obs_frequency" class="form-label">Fréquences d'observations</label>
+                <select class="form-select" id="obs_frequency" name="obs_frequency" required>
+                    {% for obs in observation_frequencies %}
+                    <option value="{{ obs.value }}">{{ obs.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="vol_type" class="form-label">Type de Volatilité</label>
+                <select class="form-select" id="vol_type" name="vol_type" required>
+                    {% for vol in vol_types %}
+                    <option value="{{ vol.value }}">{{ vol.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="nb_paths" class="form-label">Nombre de Paths MC</label>
+                <input type="number" class="form-control" id="nb_paths" name="nb_paths" value="10000" required>
+            </div>
+        </div>
+
+        
+
+        <button type="submit" class="btn btn-success w-100">Calculer le Prix</button>
+    </form>
+
+    <div id="loading-spinner" style="display: none; text-align: center; margin-top: 20px;">
+        <div class="spinner-border" role="status">
+            <span class="sr-only"></span>
+        </div>
+        <p>Calcul en cours...</p>
+    </div>
+
+    <div id="autocall-result-container" class="mt-4 text-center" style="display: none;">
+        <h2>Résultats</h2>
+        <!-- <p><strong>Prix Calculé :</strong></p> -->
+        <p id="autocall-price" class="fs-2 fw-bold">-</p>
+        <h3>Grecs de l'Option</h3>
+        <table class="table table-bordered" id="greeks-table" style="margin: 0 auto; width: 50%; display: none;">
+            <thead>
+                <tr>
+                    <th>Grecs</th>
+                    <th>Valeur</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Delta</td><td id="delta">-</td></tr>
+                <tr><td>Gamma</td><td id="gamma">-</td></tr>
+                <tr><td>Vega</td><td id="vega">-</td></tr>
+                <tr><td>Theta</td><td id="theta">-</td></tr>
+                <tr><td>Rho</td><td id="rho">-</td></tr>
+            </tbody>
+        </table>
+        <br>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/autocall_pricer.js' %}"></script>
+{% endblock %}

@@ -1,10 +1,17 @@
 from kernel.products import *
 from kernel.market_data.volatility_surface.enums_volatility import VolatilitySurfaceType
-
+from kernel.tools import  ObservationFrequency
 VOL_CONV = {
     "svi" : VolatilitySurfaceType.SVI,
     "ssvi" : VolatilitySurfaceType.SSVI,
     "local" : VolatilitySurfaceType.LOCAL,
+}
+
+OBS_FREQ = {
+    "annual" : ObservationFrequency.ANNUAL,
+    "semiannual" : ObservationFrequency.SEMIANNUAL,
+    "quarterly" : ObservationFrequency.QUARTERLY,
+    "monthly" : ObservationFrequency.MONTHLY,
 }
 
 OPTION_CLASSES = {
@@ -119,3 +126,28 @@ def create_strategy(strategy_type, maturity, strikes=None, maturity_calendar=Non
     #     return Collar(maturity, strikes[0], strikes[1])
     else:
         raise ValueError(f"Type de stratégie '{strategy_type}' non reconnu.")
+    
+
+def create_autocall(autocall_type, maturity, obs_frequency, barriere_capital, barriere_rappel, barriere_coupon, is_plus, is_security):
+
+    if autocall_type == 'phoenix':
+        # Straddle avec un seul strike pour le call et le put
+        return Phoenix(maturity=maturity, 
+                       observation_frequency=obs_frequency, 
+                       capital_barrier=barriere_capital, 
+                       autocall_barrier=barriere_rappel, 
+                       coupon_barrier=barriere_coupon, 
+                       coupon_rate=5.0,
+                       is_security = is_security,
+                       is_plus = is_plus)
+    
+    elif autocall_type == 'eagle':
+       return Eagle(maturity=maturity, 
+                       observation_frequency=obs_frequency, 
+                       capital_barrier=barriere_capital, 
+                       autocall_barrier=barriere_rappel, 
+                       coupon_rate=5.0,
+                       is_security = is_security,
+                       is_plus = is_plus)
+    else:
+        raise ValueError(f"Type d'autocall '{autocall_type}' non reconnu.")
