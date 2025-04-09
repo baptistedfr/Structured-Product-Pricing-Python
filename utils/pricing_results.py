@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, Optional
+from typing import Dict, Optional,List
 
 @dataclass
 class PricingResults:
@@ -35,3 +35,23 @@ class PricingResults:
             f"({self.confidence_level:.0%} CI: {bounds})\n"
             f"Greeks: {self.greeks if self.greeks else 'N/A'}"
         )
+
+    @staticmethod
+    def get_aggregated_results(results: List["PricingResults"]) -> "PricingResults":
+        aggregated = PricingResults()
+        aggregated.price = sum(r.price for r in results if r.price is not None)
+
+    # Agrégation naïve des écarts types (pas statistiquement rigoureuse sans corrélation)
+        std_devs = [r.std_dev for r in results if r.std_dev is not None]
+        if std_devs:
+            aggregated.std_dev = sum(std_devs) / len(std_devs) # moyenne des std dev
+
+    # Agrégation des grecs 
+        all_greeks = {}
+        for r in results:
+            for k, v in r.greeks.items():
+                all_greeks[k] = all_greeks.get(k, 0) + v
+        aggregated.greeks = all_greeks
+
+        return aggregated
+

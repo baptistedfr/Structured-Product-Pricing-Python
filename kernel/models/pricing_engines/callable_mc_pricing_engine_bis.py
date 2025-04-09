@@ -23,7 +23,7 @@ class CallableMCPricingEngineBis(MCPricingEngineBis):
         self.obs_frequency = settings.obs_frequency
         self.compute_coupon = settings.compute_callable_coupons
 
-    def get_results(self, derivative) -> PricingResults: 
+    def get_result(self, derivative) -> PricingResults: 
         result = PricingResults()
         self._set_stochastic_process(derivative)
 

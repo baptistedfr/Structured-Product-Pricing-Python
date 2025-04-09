@@ -1,6 +1,7 @@
 from .abstract_pricing_engine import AbstractPricingEngineBis
 from ..stochastic_processes import StochasticProcess
 from kernel.products.options.abstract_option import AbstractOption
+from kernel.products.options_strategies.abstract_option_strategy import AbstractOptionStrategy
 from kernel.market_data.market import Market
 from kernel.tools import ObservationFrequency
 from utils.pricing_settings import PricingSettings
@@ -38,6 +39,22 @@ class MCPricingEngineBis(AbstractPricingEngineBis):
 
 
     def get_results(self, derivative: AbstractOption) -> PricingResults:
+        self.derivative = derivative
+        if(isinstance(derivative, AbstractOptionStrategy)):
+            #if its an abstract option strategy, its a list of abstract options
+            strat_results = []
+            for opt,is_long in derivative.options:
+                position = 1 if is_long else -1
+                self._set_stochastic_process(opt)
+                result = self.get_result(opt,position)
+                strat_results.append(result)
+            return PricingResults.get_aggregated_results(strat_results)
+        else:
+            #if its a single abstract option, we just call the get_result method
+            return self.get_result(derivative)
+
+
+    def get_result(self, derivative: AbstractOption,position : int = 1) -> PricingResults:
         """
         Returns the results of the pricing engine.
 
@@ -53,7 +70,7 @@ class MCPricingEngineBis(AbstractPricingEngineBis):
         price = self._get_price(derivative,self.stochastic_process)
         
         pricing_results = PricingResults()
-        pricing_results.price = price
+        pricing_results.price = price * position
 
         return pricing_results
     
