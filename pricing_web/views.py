@@ -238,8 +238,7 @@ def autocall_pricing_view(request):
 
 
 def calculate_autocall_coupon(request):
-    print(request.GET.get('plusCheckbox', False))
-    print(request.GET.get('securityCheckbox', False))
+
     obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
     autocall = create_autocall(autocall_type = request.GET.get('autocall_type'), 
                             maturity = float(request.GET.get('maturity', 1)), 
