@@ -61,6 +61,8 @@ STRATEGY_CLASSES = {
     'BearSpread': BearSpread,
     'ButterflySpread': ButterflySpread,
     'CondorSpread': CondorSpread,
+    'Strip' : Strip,
+    'Strap' : Strap,
     'CalendarSpread': CalendarSpread,
     'Collar': Collar,
 }
@@ -102,14 +104,18 @@ def create_strategy(strategy_type, maturity, strikes=None, maturity_calendar=Non
         strike_low, strike_mid, strike_high = strikes[0], strikes[1], strikes[2]
         return ButterflySpread(maturity, strike_low, strike_mid, strike_high)
 
-    elif strategy_type == 'condor_spread':
-        # CondorSpread avec quatre strikes : low, mid1, mid2, high
-        if strikes is None or len(strikes) != 4:
-            raise ValueError("CondorSpread nécessite quatre strikes dans la liste: low, mid1, mid2, high")
-        strikes.sort()
-        strike_low, strike_mid1, strike_mid2, strike_high = strikes[0], strikes[1], strikes[2], strikes[3]
-        return CondorSpread(maturity, strike_low, strike_mid1, strike_mid2, strike_high)
+    elif strategy_type == 'strip':
+        if strikes is None or len(strikes) != 1:
+            raise ValueError("Strip nécessite 1 strike")
+        
+        return Strip(maturity, strikes[0])
 
+    elif strategy_type == 'strap':
+        if strikes is None or len(strikes) != 1:
+            raise ValueError("Strap nécessite 1 strike")
+        
+        return Strap(maturity, strikes[0])
+    
     elif strategy_type == 'calendar_spread':
         # CalendarSpread avec deux maturités et deux strikes : call et put
         if strikes is None or len(strikes) < 1:

@@ -173,3 +173,52 @@ class Collar(AbstractOptionStrategy):
         self.call = EuropeanCallOption(maturity, strike_call)
         self.put = EuropeanPutOption(maturity, strike_put)
         super().__init__([(self.call, position_call), (self.put, position_put)])
+
+class Strip(AbstractOptionStrategy):
+    """
+    Représente une stratégie de strip.
+    Composée de 1 call et 2 puts (tous long ou tous short).
+    """
+    def __init__(self, maturity: float, strike: float, 
+                 position_call: bool = True, position_put: bool = True):
+        """
+        Initialise une stratégie de strip.
+
+        :param maturity: Échéance des options.
+        :param strike: Prix d'exercice commun des options.
+        :param position_call: Position sur l'option call (True pour long, False pour short).
+        :param position_put: Position sur les options put (True pour long, False pour short).
+        """
+        call = EuropeanCallOption(maturity, strike)
+        put1 = EuropeanPutOption(maturity, strike)
+        put2 = EuropeanPutOption(maturity, strike)
+        super().__init__([
+            (call, position_call),
+            (put1, position_put),
+            (put2, position_put)
+        ])
+
+class Strap(AbstractOptionStrategy):
+    """
+    Représente une stratégie de strap.
+    Composée de 2 calls et 1 put (tous long ou tous short).
+    """
+    def __init__(self, maturity: float, strike: float, 
+                 position_call: bool = True, position_put: bool = True):
+        """
+        Initialise une stratégie de strap.
+
+        :param maturity: Échéance des options.
+        :param strike: Prix d'exercice commun des options.
+        :param position_call: Position sur les options call (True pour long, False pour short).
+        :param position_put: Position sur l'option put (True pour long, False pour short).
+        """
+        call1 = EuropeanCallOption(maturity, strike)
+        call2 = EuropeanCallOption(maturity, strike)
+        put = EuropeanPutOption(maturity, strike)
+        super().__init__([
+            (call1, position_call),
+            (call2, position_call),
+            (put, position_put)
+        ])
+

@@ -191,20 +191,14 @@ def calculate_price_strategy(request):
         "compute_greeks": False,
     }
     settings = PricingSettings(**settings_dict)
-
     launcher = PricingLauncherBis(settings)
-
     results = launcher.get_results(strategy)
-    
 
-    
     price = results.price
-    print(price)
     greeks = results.greeks
     prices = np.linspace(0.5 * min(strikes), 1.5 * max(strikes), 100)
     print(prices)
     payoffs = [strategy.payoff([p]) for p in prices]  # Calcul des payoffs
-    print(payoffs)
     # Retourner les résultats dans une réponse JSON
     return JsonResponse({
         'price': round(price, 2),
