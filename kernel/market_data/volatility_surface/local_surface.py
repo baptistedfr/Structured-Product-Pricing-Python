@@ -82,7 +82,7 @@ class LocalVolatilitySurface(AbstractVolatilitySurface):
 
         return S * norm.cdf(d1) - strike * np.exp(-r * maturity) * norm.cdf(d2)
 
-    def _finite_difference(self, func: callable, x: float, order: int =1, delta: float = 0.01):
+    def _finite_difference(self, func: callable, x: float, order: int =1, delta: float = 0.05) -> float:
         """
         Generic finite difference method to compute the derivative of a function.
         Can compute first and second derivatives.
@@ -96,7 +96,7 @@ class LocalVolatilitySurface(AbstractVolatilitySurface):
         Returns:
             float: Approximated derivative at point x.
         """
-        eps = x * 0.01 if x * 0.01 > 1e-4 else 1e-4
+        eps = max(x * delta, 1e-2)
 
         if order == 1:
             return (func(x + eps) - func(x - eps)) / (2 * eps)
@@ -105,7 +105,7 @@ class LocalVolatilitySurface(AbstractVolatilitySurface):
         else:
             raise ValueError("Derivative order must be 1 or 2.")
 
-    def _compute_derivatives(self, strike: float, maturity: float):
+    def _compute_derivatives(self, strike: float, maturity: float) -> tuple:
         """
         Compute the finite difference derivatives needed for Dupire's formula.
 
@@ -143,7 +143,10 @@ class LocalVolatilitySurface(AbstractVolatilitySurface):
         numerator = dC_dT + r * strike * dC_dK
         denominator = 0.5 * strike**2 * d2C_dK2
 
-        return np.sqrt(max(numerator / denominator, 0))
+        if denominator <= 1e-8 or numerator < 0:
+            return self.svi_surface.get_volatility(strike, maturity)
+        
+        return np.sqrt(numerator / denominator)
 
     def display_smiles(self) -> None:
         """
@@ -169,10 +172,18 @@ class LocalVolatilitySurface(AbstractVolatilitySurface):
                 local_vols.append(lv * 100)  # en pourcentage
 
             ax = axes[i]
+
             # Pour comparaison, on trace aussi la smile implicite obtenue par SVI
             svi_vols = [self.svi_surface.get_volatility(K, T) * 100 for K in strikes_range]
             ax.plot((strikes_range / self.spot) * 100, local_vols, label="Vol locale", color="green")
             ax.plot((strikes_range / self.spot) * 100, svi_vols, label="Vol implicite SVI", color="orange", linestyle="--")
+
+            # Ajouter les points de données du marché
+            market_data = self.option_data[self.option_data["Maturity"] == T]
+            market_moneyness = (market_data["Strike"] / self.spot) * 100
+            market_vols = market_data["Implied Volatility"]
+            ax.scatter(market_moneyness, market_vols, color="red", label="Données marché", s=10)
+
             ax.set_title(f"Maturité : {int(T * 252)} jours", fontsize=12, fontweight="bold")
             ax.set_xlabel("Moneyness (% ATM)", fontsize=10)
             ax.set_ylabel("Volatilité (%)", fontsize=10)
@@ -214,7 +225,7 @@ class LocalVolatilitySurface(AbstractVolatilitySurface):
         ax.set_xlabel("Maturité (jours)", fontsize=12, labelpad=10)
         ax.set_ylabel("Moneyness (% ATM)", fontsize=12, labelpad=10)
         ax.set_zlabel("Volatilité (%)", fontsize=12, labelpad=10)
-        ax.set_title("Surface de Volatilité Locale (Dupire)", fontsize=14, fontweight="bold")
+        ax.set_title("Surface de volatilité locale", fontsize=14, fontweight="bold")
         ax.legend(fontsize=10)
         ax.grid(True, linestyle="--", alpha=0.5)
         plt.tight_layout()
@@ -231,7 +242,7 @@ class LocalVolatilitySurface(AbstractVolatilitySurface):
         for i, K in enumerate(strikes):
             for j, T in enumerate(maturities):
                 try:
-                    price_surface[i, j] = self.call_price(K, T)
+                    price_surface[i, j] = self._option_price(K, T)
                 except Exception:
                     price_surface[i, j] = np.nan
 
@@ -240,12 +251,18 @@ class LocalVolatilitySurface(AbstractVolatilitySurface):
         ax = fig.add_subplot(111, projection="3d")
         surf = ax.plot_surface(X, Y, price_surface, cmap="plasma", edgecolor="k", alpha=0.8)
         
+        market_strikes = (self.option_data["Strike"] / self.spot) * 100
+        market_maturities = self.option_data["Maturity"] * 252
+        market_prices = [self._option_price(row["Strike"], row["Maturity"]) for _, row in self.option_data.iterrows()]
+        ax.scatter(market_maturities, market_strikes, market_prices, color="red", label="Options de marché", s=20)
+
         cbar = fig.colorbar(surf, ax=ax, shrink=0.5, aspect=10)
         cbar.set_label("Prix du Call", fontsize=12)
         ax.set_xlabel("Maturité (jours)", fontsize=12, labelpad=10)
         ax.set_ylabel("Moneyness (% ATM)", fontsize=12, labelpad=10)
-        ax.set_zlabel("Prix du Call", fontsize=12, labelpad=10)
-        ax.set_title("Surface des Prix des Options (Black)", fontsize=14, fontweight="bold")
+        ax.set_zlabel("Call Prix", fontsize=12, labelpad=10)
+        ax.set_title("Surface des prix des options", fontsize=14, fontweight="bold")
+        ax.legend(fontsize=10)
         ax.grid(True, linestyle="--", alpha=0.5)
         plt.tight_layout()
         plt.show()

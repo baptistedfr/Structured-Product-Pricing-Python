@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 from kernel.tools import *
-from kernel.market_data import RateCurve, InterpolationType,UnderlyingAsset, VolatilitySurfaceType
+from kernel.market_data import RateCurve, InterpolationType,UnderlyingAsset, VolatilitySurfaceType, SVIVolatilitySurface
 import re
 
 class Market:
@@ -151,8 +151,9 @@ class Market:
             self._fetch_yield_curves()
         
         if self.volatility_surface_type.name == "LOCAL":
-            svi = self.volatility_surface_type["LOCAL"](option_data=option_data, rate_curve=self.rate_curve)
-            volatility_surface = self.volatility_surface_type.value(option_data=option_data, rate_curve=self.rate_curve, svi_surface=svi)
+            svi_surface = SVIVolatilitySurface(option_data=option_data, rate_curve=self.rate_curve)
+            svi_surface.calibrate_surface()
+            volatility_surface = self.volatility_surface_type.value(option_data=option_data, rate_curve=self.rate_curve, svi_surface=svi_surface)
         else:
             volatility_surface = self.volatility_surface_type.value(option_data=option_data, rate_curve=self.rate_curve)
 
@@ -190,7 +191,7 @@ class Market:
         if end <= start:
             raise ValueError("End maturity must be greater than start maturity")
         if start == 0.0:
-            return self.get_rate(end)  # Spot = Forward from 0 to end
+            return self.get_rate(end)
         
         r1 = self.get_rate(start)
         r2 = self.get_rate(end)
