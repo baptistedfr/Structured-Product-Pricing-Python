@@ -178,8 +178,17 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
         if not self.interpolators:
             raise Exception("SVI surface not calibrated yet!")
 
-        # Interpolate SVI parameters for the given maturity
-        interpolated_params = np.array([self.interpolators[i](maturity) for i in range(5)])
+        # Handle flat extrapolation for maturities outside the calibrated range
+        min_maturity = min(self.svi_params_by_maturity.keys())
+        max_maturity = max(self.svi_params_by_maturity.keys())
+
+        if maturity < min_maturity:
+            interpolated_params = np.array([self.svi_params_by_maturity[min_maturity][i] for i in range(5)])
+        elif maturity > max_maturity:
+            interpolated_params = np.array([self.svi_params_by_maturity[max_maturity][i] for i in range(5)])
+        else:
+            interpolated_params = np.array([self.interpolators[i](maturity) for i in range(5)])
+
         log_moneyness = np.log(strike / self.spot)
         total_variance = self.svi_total_variance(log_moneyness, interpolated_params)
         return np.sqrt(total_variance / maturity)
@@ -242,8 +251,8 @@ class SVIVolatilitySurface(AbstractVolatilitySurface):
             raise Exception("SVI surface not calibrated yet!")
 
         spot = self.option_data["Spot"].values[0]
-        strikes = np.linspace(spot / 2, spot * 2, 50)
-        maturities = np.linspace(min(self.option_data["Maturity"]), max(self.option_data["Maturity"]), 50)
+        strikes = np.linspace(spot / 2, spot * 2, 100)
+        maturities = np.linspace(min(self.option_data["Maturity"]), max(self.option_data["Maturity"]), 100)
 
         # Get the surface
         vol_surface = np.zeros((len(strikes), len(maturities)))
