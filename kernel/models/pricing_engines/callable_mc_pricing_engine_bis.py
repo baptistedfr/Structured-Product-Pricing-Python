@@ -44,7 +44,7 @@ class CallableMCPricingEngineBis(MCPricingEngineBis):
             # For each path we compute the cashflow sum according to the callable parameters and the index of the call date
             payoff, t_call = derivative.payoff(path)
             # Mapping from the index of the call date to the number of year
-            discount_time = t_call * self.obs_frequency.value
+            discount_time = t_call / self.obs_frequency.value
             # We discount the sum of cashflow frow the call date to the present date
             total_payoff.append(payoff * self.market.get_discount_factor(discount_time))
         return np.mean(total_payoff)

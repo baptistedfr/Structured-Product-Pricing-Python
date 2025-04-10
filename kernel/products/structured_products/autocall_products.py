@@ -51,7 +51,7 @@ class Phoenix(AbstractAutocall):
 
         index_observations = np.linspace(0, len(paths) - 1, int((self.maturity * self.observation_frequency.value) + 1)).astype(int)
         num_observations = len(index_observations)
-        paths = paths[index_observations]
+        paths = (paths[index_observations]/paths[0])*100
         coupons = 0
         missed_coupons = 0
 
@@ -73,9 +73,10 @@ class Phoenix(AbstractAutocall):
         else:
             if self.is_security:
                 gearing = 100 / self.capital_barrier
-                return max(0, (final_price - self.capital_barrier) * gearing + coupons), num_observations
+                loss = (self.capital_barrier - final_price) * gearing 
+                return max(0, 100 - loss + coupons), num_observations
             else:
-                return max(0, 100 - final_price + coupons), num_observations
+                return max(0, final_price + coupons), num_observations
 
 
 class Eagle(AbstractAutocall):
@@ -94,7 +95,7 @@ class Eagle(AbstractAutocall):
     def payoff(self, paths: np.ndarray) -> float:
         index_observations = np.linspace(0, len(paths) - 1, int((self.maturity * self.observation_frequency.value) + 1)).astype(int)
         num_observations = len(index_observations)
-        paths = paths[index_observations]
+        paths = (paths[index_observations]/paths[0])*100
 
         for t in range(1, num_observations):
             if paths[t] >= self.autocall_barrier:
@@ -107,6 +108,7 @@ class Eagle(AbstractAutocall):
         else:
             if self.is_security:
                 gearing = 100 / self.capital_barrier
-                return max(0, (final_price - self.capital_barrier) * gearing), num_observations
+                loss = (self.capital_barrier - final_price) * gearing 
+                return max(0, 100 - loss), num_observations
             else:
-                return max(0, 100 - final_price), num_observations
+                return max(0, final_price), num_observations
