@@ -29,7 +29,7 @@ class PricingLauncherBis:
                              calendar_convention=self.settings.day_count_convention,
                              obs_frequency=self.settings.obs_frequency)
 
-    def get_results(self,derivative: AbstractDerive):
+    def get_results(self,derivative: AbstractDerive) -> Union[PricingResults]:
         #a terme devrait s'appeler calculate et ca lirait les produits directement via une classe d'interface ? et afficherait les resultats ?
         """
         Main method to perform the pricing calculation.
