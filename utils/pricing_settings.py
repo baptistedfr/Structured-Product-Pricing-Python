@@ -5,19 +5,35 @@ from kernel.tools import *
 from kernel.market_data import InterpolationType, VolatilitySurfaceType
 
 class PricingSettings:
-    def __init__(self): #a voir si on fait tout saisir à l'utilisateur ou pas 
-        self.day_count_convention: Optional[str] = None
-        self.nb_paths: Optional[int] = None
-        self.nb_steps: Optional[int] = None
-        self.valuation_date: Optional[datetime] = None
-        self.compute_greeks: bool = False
-        self.random_seed: Optional[int] = 4012
-        self.model: Optional[Model] = None  # a voir
-        self.rate_curve_type: Optional[RateCurveType] = None
-        self.interpolation_type: Optional[InterpolationType] = None
-        self.volatility_surface_type: Optional[VolatilitySurfaceType] = None
-        self.obs_frequency: Optional[ObservationFrequency] = ObservationFrequency.ANNUAL
-        self.pricing_engine_type = None
-        self.underlying_name: Optional[str] = None
-        self.compute_callable_coupons = False
+    def __init__(
+        self,
+        underlying_name: Optional[str] = None,
+        rate_curve_type: Optional[RateCurveType] = None,
+        interpolation_type: Optional[InterpolationType] = None,
+        volatility_surface_type: Optional[VolatilitySurfaceType] = None,
+        obs_frequency: Optional[ObservationFrequency] = None,
+        day_count_convention: Optional[str] = None,
+        model: Optional[Model] = None,
+        pricing_engine_type: Optional[str] = None,
+        nb_paths: Optional[int] = None,
+        nb_steps: Optional[int] = None,
+        random_seed: Optional[int] = 4012,
+        compute_greeks: bool = False,
+        valuation_date: Optional[datetime] = None,
+        compute_callable_coupons: bool = False,
+    ):
+        self.underlying_name = underlying_name
+        self.rate_curve_type = rate_curve_type
+        self.interpolation_type = interpolation_type
+        self.volatility_surface_type = volatility_surface_type
+        self.obs_frequency = obs_frequency
+        self.day_count_convention = day_count_convention
+        self.model = model
+        self.pricing_engine_type = pricing_engine_type
+        self.nb_paths = nb_paths
+        self.nb_steps = nb_steps
+        self.random_seed = random_seed
+        self.compute_greeks = compute_greeks
+        self.valuation_date = valuation_date
+        self.compute_callable_coupons = compute_callable_coupons
 

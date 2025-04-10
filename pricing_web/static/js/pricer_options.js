@@ -154,6 +154,10 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch('/calculate_price_options?' + queryString)
             .then(response => response.json())
             .then(data => {
+                document.getElementById("result-container").style.display = "block";
+
+                // Rendre le tableau des Grecs visible aussi
+                document.getElementById("greeks-table").style.display = "table";
                 spinner.style.display = 'none';
                 resultPrice.textContent = `Price: ${data.price} USD`;
 

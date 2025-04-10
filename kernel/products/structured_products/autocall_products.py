@@ -48,7 +48,10 @@ class Phoenix(AbstractAutocall):
         self.coupon_barrier = coupon_barrier
     
     def payoff(self, paths: np.ndarray) -> float:
-        num_observations = paths.shape[0]
+
+        index_observations = np.linspace(0, len(paths) - 1, int((self.maturity * self.observation_frequency.value) + 1)).astype(int)
+        num_observations = len(index_observations)
+        paths = paths[index_observations]
         coupons = 0
         missed_coupons = 0
 
@@ -89,7 +92,9 @@ class Eagle(AbstractAutocall):
         super().__init__(maturity, observation_frequency, capital_barrier, autocall_barrier, coupon_rate, is_security, is_plus)
     
     def payoff(self, paths: np.ndarray) -> float:
-        num_observations = paths.shape[1]
+        index_observations = np.linspace(0, len(paths) - 1, int((self.maturity * self.observation_frequency.value) + 1)).astype(int)
+        num_observations = len(index_observations)
+        paths = paths[index_observations]
 
         for t in range(1, num_observations):
             if paths[t] >= self.autocall_barrier:

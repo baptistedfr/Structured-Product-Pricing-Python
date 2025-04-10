@@ -59,8 +59,8 @@
                 <input type="number" class="form-control" id="maturity" name="maturity" value="1" required>
             </div>
             <div class="col-md-4 mb-3">
-                <label for="nb_steps" class="form-label">Nombre de Steps</label>
-                <input type="number" class="form-control" id="nb_steps" name="nb_steps" value="10000" required>
+                <label for="nb_paths" class="form-label">Nombre de Paths</label>
+                <input type="number" class="form-control" id="nb_paths" name="nb_paths" value="10000" required>
             </div>
         </div>
         <div class="mb-3" id="barrier-fields" style="display: none;">
@@ -95,7 +95,7 @@
         </div>
         <p>Calcul en cours...</p>
     </div>
-    <div class="mt-4 text-center">
+    <div id="result-container" class="mt-4 text-center" style="display: none;">
         <h2>Résultats</h2>
         <p><strong>Prix Calculé :</strong></p>
         <p id="option-price" class="fs-2 fw-bold">-</p>
@@ -121,7 +121,6 @@
         <div id="chart-container" style="display: flex; justify-content: center; margin-top: 20px;">
             <canvas id="payoffChart" width="800" height="600"></canvas>
         </div>
-    
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

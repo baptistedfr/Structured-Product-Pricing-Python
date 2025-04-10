@@ -8,5 +8,9 @@ urlpatterns = [
     path('get_ticker_price', views.get_ticker_price, name='get_ticker_price'),
     path('options/', views.pricer_view, name='options_pricing'),
     path('options/strategies/', views.strategies_view, name='options_strategies_pricing'),
-    path('calculate_price_options', views.calculate_price_options,  name='calculate_price_options')
+    path('calculate_price_options', views.calculate_price_options,  name='calculate_price_options'),
+    path('calculate_price_strategy', views.calculate_price_strategy,  name='calculate_price_strategy'),
+    path('autocalls/', views.autocall_pricing_view, name='autocall_pricing'),
+     path('calculate_autocall_coupon', views.calculate_autocall_coupon,  name='calculate_autocall_coupon'),
+
 ]
