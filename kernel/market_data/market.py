@@ -211,7 +211,29 @@ class Market:
         """
         rate = self.get_rate(maturity)
         return np.exp(-rate * maturity)
-    
+    def get_fwd_discount_factor(self, start: float, end: float) -> float:
+        """
+        Computes the forward discount factor between two future dates.
+
+        Parameters:
+            start (float): Start maturity in years (e.g., 1.0 for 1 year)
+            end (float): End maturity in years (must be > start)
+
+        Returns:
+            float: Forward discount factor between start and end
+        """
+        if not self.rate_curve:
+            self._fetch_yield_curves()
+
+        if end <= start:
+            raise ValueError("End maturity must be greater than start maturity")
+        if start == 0.0:
+            return self.get_discount_factor(end)
+        df_start = self.get_discount_factor(start)
+        df_end = self.get_discount_factor(end)
+
+        return df_end / df_start
+
     def get_volatility(self, strike: float, maturity: float) -> float:
         """
         Get the volatility interpolated by the volatility surface at this specific point (Strike * Maturity).

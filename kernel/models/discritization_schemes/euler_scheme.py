@@ -61,7 +61,6 @@ class EulerSchemeBis:
         S = np.zeros((nb_paths, process.nb_steps + 1))
 
         paths[:, 0] = process.S0
-        S[:, 0] = process.S0
         dt = process.dt
         dW = process.get_random_increments(nb_paths, seed)
 
@@ -71,7 +70,6 @@ class EulerSchemeBis:
             dW_i = dW[:, i]
             drift = process.get_drift(i, x)
             vol = process.get_volatility(i, x)
-            mu = drift / x
 
             paths[:, i + 1] = x + drift * dt + vol  * dW_i
         return paths
