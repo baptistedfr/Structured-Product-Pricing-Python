@@ -1,4 +1,4 @@
-from .abstract_pricing_engine import AbstractPricingEngineBis
+from .abstract_pricing_engine import AbstractPricingEngine
 from ..stochastic_processes import StochasticProcess
 from kernel.products.options.abstract_option import AbstractOption
 from kernel.market_data.market import Market
@@ -7,14 +7,14 @@ from kernel.tools import ObservationFrequency
 from utils.pricing_settings import PricingSettings
 from utils.pricing_results import PricingResults
 from kernel.models.stochastic_processes import BlackScholesProcess,HestonProcess
-from kernel.models.stochastic_processes.black_scholes_process import BlackScholesProcessBis
-from kernel.models.discritization_schemes.euler_scheme import EulerSchemeBis
-from .mc_pricing_engine_bis import MCPricingEngineBis
+from kernel.models.stochastic_processes.black_scholes_process import BlackScholesProcess
+from kernel.models.discritization_schemes.euler_scheme import EulerScheme
+from .mc_pricing_engine import MCPricingEngine
 import numpy as np
 import pandas as pd
 
 
-class AmericanMCPricingEngine(MCPricingEngineBis):
+class AmericanMCPricingEngine(MCPricingEngine):
     """
     A Monte Carlo pricing engine for classic financial derivatives (no barrier, no asian payoff ...)
 
@@ -34,7 +34,7 @@ class AmericanMCPricingEngine(MCPricingEngineBis):
 
     def _get_price(self, derivative : AmericanAbstractOption , stochastic_process : StochasticProcess) -> float:
         
-        scheme = EulerSchemeBis()
+        scheme = EulerScheme()
         paths=scheme.simulate_paths(process=stochastic_process, nb_paths=self.nb_paths, seed=self.random_seed)
 
 

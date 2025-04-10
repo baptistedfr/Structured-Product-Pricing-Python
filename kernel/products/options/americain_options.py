@@ -1,6 +1,7 @@
 from kernel.products.options.abstract_option import AbstractOption
 import numpy as np
 from abc import ABC, abstractmethod
+from typing import Union, List
 
 class AmericanAbstractOption(AbstractOption):
     """
@@ -14,12 +15,12 @@ class AmericanAbstractOption(AbstractOption):
         pass
 
     @abstractmethod
-    def instrinsec_payoff(self, S: np.ndarray) -> float:
+    def instrinsec_payoff(self, S: np.ndarray)-> np.ndarray:
         pass
     
 class AmericanCallOption(AmericanAbstractOption):
 
-    def __init__(self, strike, maturity):
+    def __init__(self, strike:float, maturity:float):
         super().__init__(strike=strike, maturity=maturity)
 
     def instrinsec_payoff(self, S):
@@ -27,10 +28,10 @@ class AmericanCallOption(AmericanAbstractOption):
     
 class AmericanPutOption(AmericanAbstractOption):
 
-    def __init__(self, strike, maturity):
+    def __init__(self, strike:float, maturity:float):
         super().__init__(strike=strike, maturity=maturity)
 
-    def instrinsec_payoff(self, S):
+    def instrinsec_payoff(self, S:np.ndarray):
         return np.maximum(self.strike - S, 0)
 
 class BermudeanCallOption(AmericanCallOption):
@@ -40,6 +41,6 @@ class BermudeanCallOption(AmericanCallOption):
         self.exercise_times = exercise_times
 
 class BermudeanPutOption(AmericanPutOption):
-    def __init__(self, strike, maturity, exercise_times):
+    def __init__(self, strike:float, maturity:float, exercise_times:List[float]):
         super().__init__(strike=strike, maturity=maturity)
         self.exercise_times = exercise_times

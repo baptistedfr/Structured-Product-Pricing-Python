@@ -1,6 +1,12 @@
 from .mc_pricing_engine import MCPricingEngine
 from kernel.tools import ObservationFrequency
 from kernel.products.structured_products import AbstractAutocall
+from kernel.market_data import Market
+from kernel.models.stochastic_processes import StochasticProcess
+from utils.pricing_settings import PricingSettings
+from utils.pricing_results import PricingResults
+from kernel.models.discritization_schemes.euler_scheme import EulerScheme
+
 import numpy as np
 
 
@@ -12,36 +18,38 @@ class CallableMCPricingEngine(MCPricingEngine):
     and can be extended to compute Greeks or other risk measures.
     """
 
-    def compute_price(self, derivative: AbstractAutocall, obs_frequency: ObservationFrequency = ObservationFrequency.ANNUAL) -> float:
-        """
-        Computes the price of an autocall structured product using the Monte Carlo simulation.
+    def __init__(self, market: Market, settings: PricingSettings) -> None: # type: ignore
+        super().__init__(market, settings)
+        self.obs_frequency = settings.obs_frequency
+        self.compute_coupon = settings.compute_callable_coupons
 
-        Parameters:
-            derivative (AbstractOption): The derivative to price.
-            obs_frequency (ObservationFrequency): The observation frequency of the structured contract, default is annual
+    def get_results(self, derivative) -> PricingResults: 
+        result = PricingResults()
+        self._set_stochastic_process(derivative)
 
-        Returns:
-            float: The computed price of the derivative.
-        """
-        # Define the scheme used for the discretization
-        self.scheme = self.discretization_method.value(self.process, nb_paths=self.nb_paths)
-        
-        # Simulate paths and compute the payoff
-        price_paths, _ = self.scheme.simulate_paths()
+        if (self.compute_coupon):
+            coupon = self.get_coupon(derivative) #voir pour la paramétrisation du target price
+            result.coupon_callable = coupon
+        else :
+            price = self.get_price(derivative, self.stochastic_process)
+            result.price = price
+        return result
 
+    def get_price(self, derivative: AbstractAutocall, process : StochasticProcess) -> float:
+
+        scheme = EulerScheme()
+        paths = scheme.simulate_paths(process, self.nb_paths, self.random_seed)
         total_payoff = []
-        for path in price_paths:
+        for path in paths:
             # For each path we compute the cashflow sum according to the callable parameters and the index of the call date
             payoff, t_call = derivative.payoff(path)
             # Mapping from the index of the call date to the number of year
-            discount_time = t_call * obs_frequency.value
+            discount_time = t_call / self.obs_frequency.value
             # We discount the sum of cashflow frow the call date to the present date
             total_payoff.append(payoff * self.market.get_discount_factor(discount_time))
-        
-        # NPV sum
         return np.mean(total_payoff)
 
-    def compute_coupon(self, derivative: 'CallableProduct', epsilon: float = 1e-2, max_iter: int = 25, target_price: float = 100) -> float: # type: ignore
+    def get_coupon(self, derivative: 'CallableProduct', epsilon: float = 1e-2, max_iter: int = 25, target_price: float = 100) -> float: # type: ignore
         """
         Computes the coupon of the structured product such that the price equals the target price (e.g., initial capital).
 
@@ -65,7 +73,7 @@ class CallableMCPricingEngine(MCPricingEngine):
             derivative.coupon_rate = mid_coupon
 
             # Compute the price for the current coupon
-            price = self.compute_price(derivative)
+            price = self.get_price(derivative,self.stochastic_process)
 
             # Check if the price is close enough to the target price
             if abs(price - target_price) < epsilon:

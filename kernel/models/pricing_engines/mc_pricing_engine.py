@@ -1,11 +1,16 @@
 from .abstract_pricing_engine import AbstractPricingEngine
 from ..stochastic_processes import StochasticProcess
 from kernel.products.options.abstract_option import AbstractOption
+from kernel.products.options_strategies.abstract_option_strategy import AbstractOptionStrategy
 from kernel.market_data.market import Market
 from kernel.tools import ObservationFrequency
+from utils.pricing_settings import PricingSettings
+from utils.pricing_results import PricingResults
+from kernel.models.stochastic_processes import BlackScholesProcess,HestonProcess
+from kernel.models.stochastic_processes.black_scholes_process import BlackScholesProcess
+from kernel.models.discritization_schemes.euler_scheme import EulerScheme
 import numpy as np
 import pandas as pd
-
 
 class MCPricingEngine(AbstractPricingEngine):
     """
@@ -15,25 +20,103 @@ class MCPricingEngine(AbstractPricingEngine):
     and can be extended to compute Greeks or other risk measures.
     """
 
-    def __init__(self, market: Market, nb_paths: float, nb_steps: float, 
-                 discretization_method: 'EulerSchemeType', stochastic_process: StochasticProcess): # type: ignore
+    def __init__(self, market: Market, settings : PricingSettings): # type: ignore
         """
         Initializes the pricing engine.
 
         Parameters:
             market (Market): The market data used for pricing
-            nb_paths (float): The number of paths to simulate
-            nb_steps (float): The number of steps to simulate for each path
-            discretization_type (EulerSchemeType): The type of discretization scheme to use. Default is EulerSchemeType.EULER
+            settings (PricingSettings): The settings for the pricing engine
         """
         super().__init__(market)
-        self.nb_paths = nb_paths
-        self.nb_steps = nb_steps
-        self.discretization_method = discretization_method
-        self.process = stochastic_process
+        self.settings = settings
+        self.nb_paths = settings.nb_paths
+        self.nb_steps = settings.nb_steps
+        self.random_seed = settings.random_seed
+        self.enable_greeks = settings.compute_greeks 
+        self.valuation_date = settings.valuation_date # pas sur que ca serve 
+        self.model = settings.model
 
-    def compute_price(self, derivative: AbstractOption, obs_frequency: ObservationFrequency = ObservationFrequency.ANNUAL) -> float:
+
+    def get_results(self, derivative: AbstractOption) -> PricingResults:
+        self.derivative = derivative
+        if(isinstance(derivative, AbstractOptionStrategy)):
+            #if its an abstract option strategy, its a list of abstract options
+            strat_results = []
+            for opt,is_long in derivative.options:
+                position = 1 if is_long else -1
+                self._set_stochastic_process(opt)
+                result = self.get_result(opt,position)
+                strat_results.append(result)
+            return PricingResults.get_aggregated_results(strat_results)
+        else:
+            #if its a single abstract option, we just call the get_result method
+            return self.get_result(derivative)
+
+
+    def get_result(self, derivative: AbstractOption,position : int = 1) -> PricingResults:
         """
+        Returns the results of the pricing engine.
+
+        Parameters:
+            derivative (AbstractOption): The derivative to price.
+
+        Returns:
+            dict: A dictionary containing the results of the pricing engine.
+        """
+        # Set the stochastic process based on the model
+        self.derivative = derivative
+        self._set_stochastic_process(derivative)
+        price = self._get_price(derivative,self.stochastic_process)
+        
+        pricing_results = PricingResults()
+        pricing_results.price = price * position
+
+        return pricing_results
+    
+    def _set_stochastic_process(self,derivative: AbstractOption) -> None: #peut etre revoir cetté méthode pour la rendre plus générique
+
+        T = derivative.maturity
+        if hasattr(derivative, "strike"):
+            K = derivative.strike
+        else:
+            # Case when the product has no strike, for exemple autocallable products
+            K = self.market.underlying_asset.last_price
+
+        # Market parameters
+        initial_value = self.market.underlying_asset.last_price
+        delta_t = T / self.nb_steps
+        drift = [self.market.get_rate(T) if self.nb_steps == 1 
+        else self.market.get_fwd_rate(i * delta_t, (i + 1) * delta_t) for i in range(self.nb_steps)]
+
+        volatility = self.market.get_volatility(K, T)
+        
+        if self.model.name == "BLACK_SCHOLES":
+            self.stochastic_process= BlackScholesProcess(S0=initial_value, T=T, nb_steps=self.nb_steps, drift=drift, volatility=volatility)
+        elif self.model.name == "HESTON": # to do 
+            theta = volatility**2
+            kappa = 1
+            ksi = 0.1
+            rho = -0.5
+            self.stochastic_process = HestonProcess(S0=initial_value, T=T, nb_steps=self.nb_steps, drift=drift, theta=theta, kappa=kappa, ksi=ksi, rho=rho)
+
+    def _get_price(self, derivative: AbstractOption,stochastic_process: StochasticProcess) -> float:
+        #le paramètre process servira probablement pour les grecs
+        scheme = EulerScheme()
+        price_paths=scheme.simulate_paths(process=stochastic_process, nb_paths=self.nb_paths, seed=self.random_seed)
+        payoffs = np.array([derivative.payoff(path) for path in price_paths])
+        price = np.mean(payoffs) * self.market.get_discount_factor(derivative.maturity)
+        return price
+
+
+    def get_price(self):
+        pass
+
+    def compute_greeks(self):
+        pass
+    """
+    def compute_price(self, derivative: AbstractOption, obs_frequency: ObservationFrequency = ObservationFrequency.ANNUAL) -> float:
+        
         Computes the price of a derivative using the Monte Carlo simulation.
 
         Parameters:
@@ -41,78 +124,14 @@ class MCPricingEngine(AbstractPricingEngine):
 
         Returns:
             float: The computed price of the derivative.
-        """
+        
         # Define the scheme used for the discretization
         self.scheme = self.discretization_method.value(self.process, nb_paths=self.nb_paths)
         
         # Simulate paths and compute the payoff
         price_paths, _ = self.scheme.simulate_paths()
         payoffs = np.array([derivative.payoff(path) for path in price_paths])
+
+    """
+    
         
-        return np.mean(payoffs) * self.market.get_discount_factor(derivative.maturity)
-            
-    def compute_greeks(self, derivative: AbstractOption, epsilon: float = 1e-3) -> pd.DataFrame:
-        """
-        Computes the greeks of the derivative using the Monte Carlo simulation and finite differences.
-
-        Parameters:
-            derivative (AbstractOption): The derivative to compute greeks for.
-            epsilon (float): The small change used for finite difference calculations.
-
-        Returns:
-            pd.DataFrame: A DataFrame containing the computed greeks.
-        """
-        greeks = {}
-
-        # Compute Delta
-        original_price = self.compute_price(derivative)
-        self.market.underlying_asset.last_price += epsilon
-        bumped_price = self.compute_price(derivative)
-        self.market.underlying_asset.last_price -= epsilon
-        greeks['Delta'] = (bumped_price - original_price) / epsilon
-
-        # Compute Gamma
-        self.market.underlying_asset.last_price += 2 * epsilon
-        bumped_price_2 = self.compute_price(derivative)
-        self.market.underlying_asset.last_price -= 2 * epsilon
-        greeks['Gamma'] = (bumped_price_2 - 2 * bumped_price + original_price) / (epsilon ** 2)
-
-        # Compute Vega
-        original_volatility = self.market.get_volatility(derivative.strike, derivative.maturity*252)
-        original_volatility += epsilon
-        bumped_price_vol = self.compute_price(derivative)
-        original_volatility = original_volatility
-        greeks['Vega'] = (bumped_price_vol - original_price) / epsilon
-
-        # Compute Theta
-        original_maturity = derivative.maturity
-        derivative.maturity -= epsilon
-        bumped_price_theta = self.compute_price(derivative)
-        derivative.maturity = original_maturity
-        greeks['Theta'] = (bumped_price_theta - original_price) / epsilon
-
-        # Compute Rho
-        original_rate = self.market.get_rate(derivative.maturity)
-        original_rate += epsilon
-        bumped_price_rho = self.compute_price(derivative)
-        original_rate = original_rate
-        greeks['Rho'] = (bumped_price_rho - original_price) / epsilon
-
-        return pd.DataFrame([greeks], index=["Greeks"])
-
-    def plot_paths(self, derivative: AbstractOption, nb_paths_plot: int = 100, plot_variance: bool = False):
-        """
-        Plots the simulated paths of the stochastic process.
-
-        Parameters:
-            derivative (AbstractOption): The derivative to plot paths for.
-        """
-        # Set temporary number of paths for plotting
-        nb_path_origin = self.nb_paths
-        self.nb_paths = nb_paths_plot
-
-        self.scheme = self.discretization_method.value(self.process, nb_paths=self.nb_paths)
-        self.scheme.plot_paths(nb_paths_plot, plot_variance)
-
-        # Reset the number of paths
-        self.nb_paths = nb_path_origin
