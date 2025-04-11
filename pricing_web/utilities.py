@@ -41,15 +41,11 @@ def create_option(option_type, maturity, strike, barrier, coupon):
     # Crée l'option en fonction du type et des paramètres fournis
     if option_type in ['UpAndInCallOption', 'UpAndOutCallOption','DownAndInCallOption','DownAndOutCallOption',
                        'UpAndInPutOption', 'DownAndInPutOption', 'UpAndOutPutOption','DownAndOutPutOption']:  # Options barrières
-        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, barrier=barrier), 252 * maturity
+        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, barrier=barrier)
     elif option_type in ['BinaryCallOption', 'BinaryPutOption']:  # Options binaires
-        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, coupon=coupon), 1
+        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, coupon=coupon)
     else:  # Options simples
-        if option_type in ['EuropeanCallOption', 'EuropeanPutOption']:
-            nb_steps = 2
-        else:
-            nb_steps = 252 * maturity
-        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike), nb_steps
+        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike)
     
 
     # Pour les stratégies optionnelles
@@ -134,8 +130,8 @@ def create_strategy(strategy_type, maturity, strikes=None, maturity_calendar=Non
         raise ValueError(f"Type de stratégie '{strategy_type}' non reconnu.")
     
 
-def create_autocall(autocall_type, maturity, obs_frequency, barriere_capital, barriere_rappel, barriere_coupon, is_plus, is_security):
-
+def create_autocall(autocall_type, maturity, obs_frequency, barriere_capital, barriere_rappel, barriere_coupon, is_plus, is_security, coupon_rate = 5.0):
+    print(coupon_rate)
     if autocall_type == 'phoenix':
         # Straddle avec un seul strike pour le call et le put
         return Phoenix(maturity=maturity, 
@@ -143,7 +139,7 @@ def create_autocall(autocall_type, maturity, obs_frequency, barriere_capital, ba
                        capital_barrier=barriere_capital, 
                        autocall_barrier=barriere_rappel, 
                        coupon_barrier=barriere_coupon, 
-                       coupon_rate=5.0,
+                       coupon_rate=coupon_rate,
                        is_security = is_security,
                        is_plus = is_plus)
     
@@ -152,8 +148,27 @@ def create_autocall(autocall_type, maturity, obs_frequency, barriere_capital, ba
                        observation_frequency=obs_frequency, 
                        capital_barrier=barriere_capital, 
                        autocall_barrier=barriere_rappel, 
-                       coupon_rate=5.0,
+                       coupon_rate=coupon_rate,
                        is_security = is_security,
                        is_plus = is_plus)
     else:
         raise ValueError(f"Type d'autocall '{autocall_type}' non reconnu.")
+    
+def create_participation_product(product_type, maturity, upper_barrier, lower_barrier, leverage, rebate):
+    print(leverage, rebate)
+    if product_type == 'twinwin':
+
+        return TwinWin(maturity=maturity, 
+                       upper_barrier=upper_barrier, 
+                       lower_barrier=lower_barrier, 
+                       leverage=leverage, 
+                       rebate=rebate)
+    
+    elif product_type == 'airbag':
+        return Airbag(maturity=maturity, 
+                       upper_barrier=upper_barrier, 
+                       lower_barrier=lower_barrier, 
+                       leverage=leverage, 
+                       rebate=rebate)
+    else:
+        raise ValueError(f"Type d'autocall '{product_type}' non reconnu.")

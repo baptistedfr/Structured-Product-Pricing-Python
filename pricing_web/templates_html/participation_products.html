@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Pricer de Produits structurés de participation{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center">Pricer de Produits structurés de participation</h1>
+    
+    <form id="strategy-form" 
+        data-twinwin='{{ twinwin_options|safe }}'
+        data-airbag='{{ airbag|safe }}'>
+
+        <div class="row mb-3">
+            <label class="form-label">Choisissez un produit</label>
+            <div class="btn-group" role="group">
+                <input type="radio" class="btn-check" id="airbag" name="product_type" value="airbag" checked>
+                <label class="btn btn-outline-primary" for="airbag">Airbag</label>
+                
+                <input type="radio" class="btn-check" id="twinwin" name="product_type" value="twinwin">
+                <label class="btn btn-outline-primary" for="twinwin">Twin Win</label>
+
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="ticker" class="form-label">Ticker</label>
+                <select class="form-select" id="ticker" name="ticker" required>
+                    {% for ticker in tickers %}
+                    <option value="{{ ticker }}">{{ ticker }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="ticker-price" class="form-label">Prix du Ticker</label>
+                <input type="text" class="form-control" id="ticker-price" name="ticker-price" readonly>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label for="barriereBasse" class="form-label">Barrière Basse (%)</label>
+                <input type="number" class="form-control" id="barriereBasse" name="barriereBasse" value="80" required>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="barriereHaute" class="form-label">Barrière Haute (%)</label>
+                <input type="number" class="form-control" id="barriereHaute" name="barriereHaute" value="120">
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label for="leverage" class="form-label">Leverage (%)</label>
+                <input type="number" class="form-control" id="leverage" name="leverage" value="100" required>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="rebate" class="form-label">Rebate (%)</label>
+                <input type="number" class="form-control" id="rebate" name="rebate" value="3">
+            </div>
+           
+        </div>
+
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label for="maturity" class="form-label">Maturité (Date)</label>
+                <input type="date" class="form-control" id="maturity" name="maturity" required>
+            </div>
+            
+            <div class="mb-3">
+                <label for="vol_type" class="form-label">Type de Volatilité</label>
+                <select class="form-select" id="vol_type" name="vol_type" required>
+                    {% for vol in vol_types %}
+                    <option value="{{ vol.value }}">{{ vol.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label for="nb_paths" class="form-label">Nombre de Paths MC</label>
+                <input type="number" class="form-control" id="nb_paths" name="nb_paths" value="10000" required>
+            </div>
+        </div>
+
+        
+
+        <button type="submit" class="btn btn-success w-100">Calculer le Prix</button>
+    </form>
+
+    <div id="loading-spinner" style="display: none; text-align: center; margin-top: 20px;">
+        <div class="spinner-border" role="status">
+            <span class="sr-only"></span>
+        </div>
+        <p>Calcul en cours...</p>
+    </div>
+
+    <div id="strategy-result-container" class="mt-4 text-center" style="display: none;">
+        <h2>Résultats</h2>
+        <p><strong>Prix Calculé :</strong></p>
+        <p id="price" class="fs-2 fw-bold">-</p>
+        <h3>Grecs de l'Option</h3>
+        <table class="table table-bordered" id="greeks-table" style="margin: 0 auto; width: 50%; display: none;">
+            <thead>
+                <tr>
+                    <th>Grecs</th>
+                    <th>Valeur</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Delta</td><td id="delta">-</td></tr>
+                <tr><td>Gamma</td><td id="gamma">-</td></tr>
+                <tr><td>Vega</td><td id="vega">-</td></tr>
+                <tr><td>Theta</td><td id="theta">-</td></tr>
+                <tr><td>Rho</td><td id="rho">-</td></tr>
+            </tbody>
+        </table>
+        <br>
+        <h3>Graphique du Payoff</h3>
+        <div id="chart-container" style="display: flex; justify-content: center; margin-top: 20px;">
+            <canvas id="payoffChart" width="800" height="600"></canvas>
+        </div>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/participation_products_pricer.js' %}"></script>
+{% endblock %}

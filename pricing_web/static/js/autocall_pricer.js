@@ -7,10 +7,19 @@ document.addEventListener("DOMContentLoaded", function () {
     const resultPrice = document.getElementById("autocall-price");
     const barriereCouponContainter = document.getElementById("barriereCoupon-container");
     const spinner = document.getElementById("loading-spinner");
-  
+    const pricingModeRadios = document.getElementsByName("pricing_mode");
+    const manualCouponContainer = document.getElementById("manual-coupon-container");
+
+    function toggleManualCouponInput() {
+        const selectedMode = Array.from(pricingModeRadios).find(radio => radio.checked)?.value;
+        if (selectedMode === "pricing") {
+            manualCouponContainer.style.display = "block";
+        } else {
+            manualCouponContainer.style.display = "none";
+        }
+    }
 
     function toggleBarriereCouponInput() {
-        console.log("here")
         const selectedAutocallType = Array.from(autocallTypeRadios).find(radio => radio.checked);
         if (selectedAutocallType) {
             barriereCouponContainter.style.display = selectedAutocallType.value === "phoenix" ? "block" : "none";
@@ -54,16 +63,23 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const formData = new FormData(this);
         const queryString = new URLSearchParams(formData).toString();
+        const selectedMode = Array.from(pricingModeRadios).find(radio => radio.checked)?.value;
+        const isPricingMode = selectedMode === "pricing";
+        const url = isPricingMode
+            ? `/calculate_autocall_price?${queryString}`
+            : `/calculate_autocall_coupon?${queryString}`;
 
-        fetch('/calculate_autocall_coupon?' + queryString)
+        fetch(url + queryString)
             .then(response => response.json())
             .then(data => {
                 document.getElementById("autocall-result-container").style.display = "block";
                 document.getElementById("greeks-table").style.display = "table";
 
                 spinner.style.display = 'none';
-                resultPrice.textContent = `Coupon: ${data.coupon} %`;
-
+                resultPrice.textContent = isPricingMode
+                ? `Prix : ${data.price} €`
+                : `Coupon : ${data.coupon} %`;
+                
                 updateGreeksDisplay(data.greeks);
             })
             .catch(err => {
@@ -76,6 +92,9 @@ document.addEventListener("DOMContentLoaded", function () {
     tickerSelect.addEventListener("change", fetchTickerPrice);
     autocallTypeRadios.forEach(radio => {
         radio.addEventListener("change", toggleBarriereCouponInput);
+    });
+    pricingModeRadios.forEach(radio => {
+        radio.addEventListener("change", toggleManualCouponInput);
     });
     fetchTickerPrice();
     toggleBarriereCouponInput();

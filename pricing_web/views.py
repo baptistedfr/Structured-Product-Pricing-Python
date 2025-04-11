@@ -1,41 +1,63 @@
-import matplotlib
-matplotlib.use('Agg')
-
+import json
+import pandas as pd
 from django.shortcuts import render
 from django.http import JsonResponse
-import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import io
-import base64
-
 from kernel.products import *
 from kernel.tools import CalendarConvention, ObservationFrequency, Model
 from kernel.market_data import InterpolationType, VolatilitySurfaceType, Market, RateCurveType
-from kernel.models import MCPricingEngine, EulerSchemeType, PricingEngineType
+from kernel.models import MCPricingEngine, PricingEngineType
 from kernel.pricing_launcher import PricingLauncher
-from kernel.pricing_launcher_bis import PricingLauncherBis
 from utils.pricing_settings import PricingSettings
-import json
-from kernel.models.pricing_engines.enum_pricing_engine import PricingEngineTypeBis
-from .utilities import create_option, OPTION_CLASSES, create_strategy, VOL_CONV, OBS_FREQ, create_autocall
+from .utilities import *
+from utils.day_counter import DayCounter
+from datetime import datetime
+# Lecture des tickers partagée pour éviter les répétitions
+def get_tickers():
+    """
+    Cette fonction charge une fois les tickers depuis le fichier 'underlying_data.xlsx'.
+    Cela évite de répéter cette opération dans chaque vue, améliorant ainsi les performances.
+    """
+    df_tickers = pd.read_excel('data/underlying_data.xlsx')
+    return df_tickers['Ticker'].unique().tolist()
 
+def get_year_fraction(calendar_convention, start_date = datetime.now(), end_date = datetime.now()):
+    """
+    Cette fonction calcule la fraction d'année entre deux dates selon la convention de calendrier spécifiée.
+    """
+    day_counter = DayCounter(calendar_convention)
+    return day_counter.get_year_fraction(start_date, end_date)
+
+def get_ticker_data():
+    """
+    Charge les données des tickers depuis un fichier Excel.
+    """
+    return pd.read_excel('data/underlying_data.xlsx')
 
 def get_ticker_price(request):
+    """
+    Récupère le prix du ticker demandé.
+    """
     ticker = request.GET.get('ticker')
-    df_tickers = pd.read_excel('data/underlying_data.xlsx')
-    ticker_price = df_tickers.loc[df_tickers['Ticker'] == ticker, "Last Price"].iloc[0]
-    return JsonResponse({'ticker_price': str(ticker_price)})
+    
+    # Charge les données des tickers une seule fois
+    df_tickers = get_ticker_data()
+    
+    # Vérification de l'existence du ticker et récupération du prix
+    ticker_price = df_tickers.loc[df_tickers['Ticker'] == ticker, "Last Price"]
+    
+    if ticker_price.empty:
+        return JsonResponse({'error': 'Ticker not found'}, status=404)
+    
+    # Retourne le prix du ticker
+    return JsonResponse({'ticker_price': str(ticker_price.iloc[0])})
 
-# Page d'accueil
-def home_page(request):
-    return render(request, 'home.html')
-
-# Page "À propos"
-def about_page(request):
-    return render(request, 'about.html')
-
+# Lecture des options partagées pour éviter les répétitions
 def get_options():
+    """
+    Cette fonction centralise la gestion des types d'options disponibles.
+    Elle retourne un dictionnaire contenant différents types d'options.
+    """
     return {
         'vanilla_options': [
             {'value': 'EuropeanCallOption', 'label': 'Call'},
@@ -48,7 +70,6 @@ def get_options():
             {'value': 'LookbackPutOption', 'label': 'Lookback Put'},
             {'value': 'FloatingStrikeCallOption', 'label': 'Floating Strike Call'},
             {'value': 'FloatingStrikePutOption', 'label': 'Floating Strike Put'}
-
         ],
         'barrier_options': [
             {'value': 'UpAndInCallOption', 'label': 'Up-and-In Call'},
@@ -66,15 +87,32 @@ def get_options():
         ]
     }
 
+# Page d'accueil
+def home_page(request):
+    """
+    Cette vue sert à afficher la page d'accueil.
+    Elle ne contient que le rendu du template 'home.html'.
+    """
+    return render(request, 'home.html')
+
+# Page "À propos"
+def about_page(request):
+    """
+    Cette vue sert à afficher la page "À propos".
+    Elle ne contient que le rendu du template 'about.html'.
+    """
+    return render(request, 'about.html')
+
+# Pricer view, utilise get_tickers pour récupérer les tickers de manière optimisée
 def pricer_view(request):
-    df_tickers = pd.read_excel('data/underlying_data.xlsx')
-    
+    """
+    Cette vue sert à afficher la page des options à prix.
+    Elle utilise get_tickers et get_options pour récupérer les données nécessaires.
+    """
     options_data = get_options()  # Récupération des options
-    
     context = {
-        'tickers': df_tickers['Ticker'].unique().tolist(),
+        'tickers': get_tickers(),  # Utilisation de la fonction get_tickers
         'vol_types': [
-            #{'value': 'constant', 'label': 'Volatilité Constante'},
             {'value': 'svi', 'label': 'SVI'},
             {'value': 'ssvi', 'label': 'SSVI'},
             {'value': 'local', 'label': 'LocalVolatility'},
@@ -84,138 +122,168 @@ def pricer_view(request):
         'barrier_options': json.dumps(options_data['barrier_options']),
         'binary_options': json.dumps(options_data['binary_options'])
     }
-    
     return render(request, 'options.html', context)
 
-
-def calculate_price_options(request):
-    # Récupération des paramètres de la requête
-
-    constant_vol = float(request.GET.get('constant_vol', 0)) if request.GET.get('constant_vol') else None
-
-    # Validation du type d'option
-    if request.GET.get('subtype') not in OPTION_CLASSES:
-        return JsonResponse({'error': 'Option type not recognized'}, status=400)
-    # Définition du type de volatilité
-    option, nb_steps = create_option(option_type = request.GET.get('subtype'), 
-                                     maturity = float(request.GET.get('maturity', 1)), 
-                                     strike = float(request.GET.get('strike', 100)), 
-                                     barrier = float(request.GET.get('barrier', None)) if request.GET.get('barrier') else None, 
-                                     coupon = float(request.GET.get('coupon', None))  if request.GET.get('coupon') else None)
-
-    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
-    print(volatility_surface_type)
-    settings_dict = {
-        "underlying_name": request.GET.get('ticker'),
-        "rate_curve_type": RateCurveType.RF_US_TREASURY,
-        "interpolation_type": InterpolationType.SVENSSON,
-        "volatility_surface_type": volatility_surface_type,
-        "obs_frequency": None,
-        "day_count_convention": CalendarConvention.ACT_360,
-        "model": Model.BLACK_SCHOLES,
-        "pricing_engine_type": PricingEngineTypeBis.MC_BIS,
-        "nb_paths": int(request.GET.get('nb_steps', 100)),
-        "nb_steps": nb_steps,
-        "random_seed": 4012,
-        "compute_greeks": False,
-    }
-    settings = PricingSettings(**settings_dict)
-    
-    launcher_bis= PricingLauncherBis(pricing_settings=settings)
-    results = launcher_bis.get_results(option)
-   
-    price = results.price
-    print(price)
-
-    greeks = results.greeks
-    # Génération du graphique de payoff
-    prices = np.linspace(0.5 * float(request.GET.get('strike', 100)), 1.5 * float(request.GET.get('strike', 100)), 100)
-    payoffs = [option.payoff([p]) for p in prices]  # Calcul des payoffs
-
-    # Retourner les résultats dans une réponse JSON
-    return JsonResponse({
-        'price': round(price, 2),
-        'greeks': greeks,
-        'payoff_data': {
-        'prices': prices.tolist(),
-        'payoffs': payoffs
-        }
-    })
-
-
-def strategies_view(request):
-    df_tickers = pd.read_excel('data/underlying_data.xlsx')
-    
-    context = {
-        'tickers': df_tickers['Ticker'].unique().tolist(),
-         'vol_types': [
-            #{'value': 'constant', 'label': 'Volatilité Constante'},
-            {'value': 'svi', 'label': 'SVI'},
-            {'value': 'ssvi', 'label': 'SSVI'},
-            {'value': 'local', 'label': 'LocalVolatility'},
-        ],
-    }
-    
-    return render(request, 'options_strategies.html', context)
-
-def calculate_price_strategy(request):
-
+# Fonction pour récupérer plusieurs strikes dans les paramètres GET
+def get_strikes(request):
+    """
+    Cette fonction récupère tous les strikes passés en paramètres GET dans la requête.
+    Elle renvoie une liste de strikes.
+    """
     strikes = []
     i = 0
     while f"strike{i}" in request.GET:
         strikes.append(float(request.GET.get(f"strike{i}")))
         i += 1
+    return strikes
 
-    # Crée la stratégie en fonction du type et des paramètres
-    strategy = create_strategy(
-            strategy_type = request.GET.get('strategy_type'), 
-            maturity = float(request.GET.get('maturity', 1)), 
-            strikes = strikes,
-            maturity_calendar = float(request.GET.get('maturity_calendar', None))  # Maturité pour CalendarSpread (optionnel),
-        )
-    
+# Calculer le prix d'une option
+def calculate_price_options(request):
+    """
+    Cette vue sert à calculer le prix d'une option en fonction des paramètres reçus dans la requête GET.
+    Elle utilise les paramètres de l'option pour calculer son prix et ses payoffs.
+    """
+    constant_vol = float(request.GET.get('constant_vol', 0)) if request.GET.get('constant_vol') else None
+    calendar_convention = CalendarConvention.ACT_360
+
+    maturity_date = request.GET.get('maturity')
+    maturity = get_year_fraction(calendar_convention, 
+                                 datetime.now(), 
+                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
+ 
+    # Validation du type d'option
+    subtype = request.GET.get('subtype')
+    if subtype not in OPTION_CLASSES:
+        return JsonResponse({'error': 'Option type not recognized'}, status=400)
+
+    # Créer l'option avec les paramètres
+    option = create_option(
+        option_type=subtype,
+        maturity=maturity,
+        strike=float(request.GET.get('strike', 100)),
+        barrier=float(request.GET.get('barrier', None)) if request.GET.get('barrier') else None,
+        coupon=float(request.GET.get('coupon', None)) if request.GET.get('coupon') else None
+    )
+
     volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
-    
+
     settings_dict = {
         "underlying_name": request.GET.get('ticker'),
         "rate_curve_type": RateCurveType.RF_US_TREASURY,
         "interpolation_type": InterpolationType.SVENSSON,
         "volatility_surface_type": volatility_surface_type,
         "obs_frequency": None,
-        "day_count_convention": CalendarConvention.ACT_360,
+        "day_count_convention": calendar_convention,
         "model": Model.BLACK_SCHOLES,
-        "pricing_engine_type": PricingEngineTypeBis.MC_BIS,
+        "pricing_engine_type": PricingEngineType.MC,
         "nb_paths": int(request.GET.get('nb_steps', 100)),
         "nb_steps": 1000,
         "random_seed": 4012,
         "compute_greeks": False,
     }
     settings = PricingSettings(**settings_dict)
-    launcher = PricingLauncherBis(settings)
-    results = launcher.get_results(strategy)
+    launcher = PricingLauncher(pricing_settings=settings)
+    results = launcher.get_results(option)
 
     price = results.price
     greeks = results.greeks
-    prices = np.linspace(0.5 * min(strikes), 1.5 * max(strikes), 100)
-    print(prices)
-    payoffs = [strategy.payoff([p]) for p in prices]  # Calcul des payoffs
-    # Retourner les résultats dans une réponse JSON
+
+    # Générer le graphique de payoff
+    prices = np.linspace(0.5 * float(request.GET.get('strike', 100)), 1.5 * float(request.GET.get('strike', 100)), 100)
+    payoffs = [option.payoff([p]) for p in prices]
+
     return JsonResponse({
         'price': round(price, 2),
         'greeks': greeks,
         'payoff_data': {
-        'prices': prices.tolist(),
-        'payoffs': payoffs
+            'prices': prices.tolist(),
+            'payoffs': payoffs
         }
     })
 
-def autocall_pricing_view(request):
-    df_tickers = pd.read_excel('data/underlying_data.xlsx')
-    
+# Fonction pour les stratégies, utilise get_tickers pour récupérer les tickers
+def strategies_view(request):
+    """
+    Cette vue sert à afficher la page des stratégies d'options.
+    Elle utilise get_tickers pour récupérer les tickers.
+    """
     context = {
-        'tickers': df_tickers['Ticker'].unique().tolist(),
-         'vol_types': [
-            #{'value': 'constant', 'label': 'Volatilité Constante'},
+        'tickers': get_tickers(),  # Utilisation de la fonction get_tickers
+        'vol_types': [
+            {'value': 'svi', 'label': 'SVI'},
+            {'value': 'ssvi', 'label': 'SSVI'},
+            {'value': 'local', 'label': 'LocalVolatility'},
+        ],
+    }
+    return render(request, 'options_strategies.html', context)
+
+# Calculer le prix d'une stratégie
+def calculate_price_strategy(request):
+    """
+    Cette vue sert à calculer le prix d'une stratégie d'options en fonction des paramètres reçus dans la requête GET.
+    """
+    strikes = get_strikes(request)  # Utilisation de la fonction get_strikes
+
+    calendar_convention = CalendarConvention.ACT_360
+
+    maturity_date = request.GET.get('maturity')
+    maturity = get_year_fraction(calendar_convention, 
+                                 datetime.now(), 
+                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
+    
+    # Créer la stratégie
+    strategy = create_strategy(
+        strategy_type=request.GET.get('strategy_type'),
+        maturity=maturity,
+        strikes=strikes,
+        maturity_calendar=float(request.GET.get('maturity_calendar', None))  # Maturité pour CalendarSpread (optionnel)
+    )
+
+    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+
+    settings_dict = {
+        "underlying_name": request.GET.get('ticker'),
+        "rate_curve_type": RateCurveType.RF_US_TREASURY,
+        "interpolation_type": InterpolationType.SVENSSON,
+        "volatility_surface_type": volatility_surface_type,
+        "obs_frequency": None,
+        "day_count_convention": calendar_convention,
+        "model": Model.BLACK_SCHOLES,
+        "pricing_engine_type": PricingEngineType.MC,
+        "nb_paths": int(request.GET.get('nb_steps', 100)),
+        "nb_steps": 1000,
+        "random_seed": 4012,
+        "compute_greeks": False,
+    }
+
+    settings = PricingSettings(**settings_dict)
+    launcher = PricingLauncher(settings)
+    results = launcher.get_results(strategy)
+
+    price = results.price
+    greeks = results.greeks
+
+    prices = np.linspace(0.5 * min(strikes), 1.5 * max(strikes), 100)
+    payoffs = [strategy.payoff([p]) for p in prices]
+
+    return JsonResponse({
+        'price': round(price, 2),
+        'greeks': greeks,
+        'payoff_data': {
+            'prices': prices.tolist(),
+            'payoffs': payoffs
+        }
+    })
+
+# Calculer le prix d'un autocall
+def autocall_pricing_view(request):
+    """
+    Cette vue sert à afficher la page de pricing des autocalls.
+    Elle utilise get_tickers pour récupérer les tickers.
+    """
+    context = {
+        'tickers': get_tickers(),  # Utilisation de la fonction get_tickers
+        'vol_types': [
             {'value': 'svi', 'label': 'SVI'},
             {'value': 'ssvi', 'label': 'SSVI'},
             {'value': 'local', 'label': 'LocalVolatility'},
@@ -227,24 +295,34 @@ def autocall_pricing_view(request):
             {'value': 'monthly', 'label': 'Mensuelles'}
         ]
     }
-    
     return render(request, 'autocall_pricing.html', context)
 
-
+# Calculer le coupon d'un autocall
 def calculate_autocall_coupon(request):
-
+    """
+    Cette vue sert à calculer le coupon d'un autocall en fonction des paramètres reçus dans la requête GET.
+    """
     obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
-    autocall = create_autocall(autocall_type = request.GET.get('autocall_type'), 
-                            maturity = float(request.GET.get('maturity', 1)), 
-                            obs_frequency = obs_frequency, 
-                            barriere_capital = float(request.GET.get('barriereCapital', None)), 
-                            barriere_rappel = float(request.GET.get('barriereRappel', None)),
-                            barriere_coupon = float(request.GET.get('barriereCoupon', None))  if request.GET.get('barriereCoupon') else None,
-                            is_plus = request.GET.get('plusCheckbox', False) == 'on',
-                            is_security = request.GET.get('securityCheckbox', False) == 'on')
+    
+    calendar_convention = CalendarConvention.ACT_360
+
+    maturity_date = request.GET.get('maturity')
+    maturity = get_year_fraction(calendar_convention, 
+                                 datetime.now(), 
+                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
+    
+    autocall = create_autocall(
+        autocall_type=request.GET.get('autocall_type'),
+        maturity=maturity,
+        obs_frequency=obs_frequency,
+        barriere_capital=float(request.GET.get('barriereCapital', None)),
+        barriere_rappel=float(request.GET.get('barriereRappel', None)),
+        barriere_coupon=float(request.GET.get('barriereCoupon', None)) if request.GET.get('barriereCoupon') else None,
+        is_plus=request.GET.get('plusCheckbox', False) == 'on',
+        is_security=request.GET.get('securityCheckbox', False) == 'on'
+    )
 
     volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
-    
 
     settings_dict = {
         "underlying_name": request.GET.get('ticker'),
@@ -252,29 +330,158 @@ def calculate_autocall_coupon(request):
         "interpolation_type": InterpolationType.SVENSSON,
         "volatility_surface_type": volatility_surface_type,
         "obs_frequency": obs_frequency,
-        "day_count_convention": CalendarConvention.ACT_360,
+        "day_count_convention": calendar_convention,
         "model": Model.BLACK_SCHOLES,
-        "pricing_engine_type": PricingEngineTypeBis.CALLABLE_MC_BIS,
+        "pricing_engine_type": PricingEngineType.CALLABLE_MC,
         "nb_paths": int(request.GET.get('nb_steps', 100)),
         "nb_steps": 1000,
         "random_seed": 4012,
         "compute_greeks": False,
     }
+
     settings = PricingSettings(**settings_dict)
-    
-    launcher_autocall = PricingLauncherBis(pricing_settings = settings)
+    launcher_autocall = PricingLauncher(pricing_settings=settings)
 
     settings.compute_callable_coupons = True
     results_autocall = launcher_autocall.get_results(autocall)
-   
+
     coupon = results_autocall.coupon_callable
-    print(coupon)
-
     greeks = results_autocall.greeks
-   
 
-    # Retourner les résultats dans une réponse JSON
     return JsonResponse({
         'coupon': round(coupon, 2),
         'greeks': greeks,
+    })
+
+# Calculer le prix d'un autocall
+def calculate_autocall_price(request):
+    """
+    Cette vue sert à calculer le coupon d'un autocall en fonction des paramètres reçus dans la requête GET.
+    """
+    obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
+    
+    calendar_convention = CalendarConvention.ACT_360
+
+    maturity_date = request.GET.get('maturity')
+    maturity = get_year_fraction(calendar_convention, 
+                                 datetime.now(), 
+                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
+    
+    autocall = create_autocall(
+        autocall_type=request.GET.get('autocall_type'),
+        maturity=maturity,
+        obs_frequency=obs_frequency,
+        barriere_capital=float(request.GET.get('barriereCapital', None)),
+        barriere_rappel=float(request.GET.get('barriereRappel', None)),
+        barriere_coupon=float(request.GET.get('barriereCoupon', None)) if request.GET.get('barriereCoupon') else None,
+        is_plus=request.GET.get('plusCheckbox', False) == 'on',
+        is_security=request.GET.get('securityCheckbox', False) == 'on',
+        coupon_rate = float(request.GET.get('coupon', 5.0)) if request.GET.get('coupon') else None
+    )
+    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+
+    settings_dict = {
+        "underlying_name": request.GET.get('ticker'),
+        "rate_curve_type": RateCurveType.RF_US_TREASURY,
+        "interpolation_type": InterpolationType.SVENSSON,
+        "volatility_surface_type": volatility_surface_type,
+        "obs_frequency": obs_frequency,
+        "day_count_convention": calendar_convention,
+        "model": Model.BLACK_SCHOLES,
+        "pricing_engine_type": PricingEngineType.CALLABLE_MC,
+        "nb_paths": int(request.GET.get('nb_steps', 100)),
+        "nb_steps": 1000,
+        "random_seed": 4012,
+        "compute_greeks": False,
+    }
+
+    settings = PricingSettings(**settings_dict)
+    launcher_autocall = PricingLauncher(pricing_settings=settings)
+
+    results_autocall = launcher_autocall.get_results(autocall)
+
+    price = results_autocall.price
+    greeks = results_autocall.greeks
+
+    return JsonResponse({
+        'price': round(price, 2),
+        'greeks': greeks,
+    })
+
+# Page de produits de participation
+def participation_products_view(request):
+    """
+    Cette vue sert à afficher la page de produits de participation.
+    Elle utilise get_tickers pour récupérer les tickers.
+    """
+    context = {
+        'tickers': get_tickers(),  # Utilisation de la fonction get_tickers
+        'vol_types': [
+            {'value': 'svi', 'label': 'SVI'},
+            {'value': 'ssvi', 'label': 'SSVI'},
+            {'value': 'local', 'label': 'LocalVolatility'},
+        ],
+    }
+    return render(request, 'participation_products.html', context)
+
+# Calculer le prix d'un produit de participation (exemple statique ici)
+def calculate_participation_products(request):
+    """
+    Cette vue sert à calculer un prix fictif pour les produits de participation.
+    Elle renvoie une réponse JSON avec un prix fictif.
+    """
+
+    calendar_convention = CalendarConvention.ACT_360
+
+    maturity_date = request.GET.get('maturity')
+    maturity = get_year_fraction(calendar_convention, 
+                                 datetime.now(), 
+                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
+    
+    # Créer la stratégie
+    strategy = create_participation_product(
+        product_type=request.GET.get('product_type'),
+        maturity = maturity,
+        upper_barrier=float(request.GET.get('barriereHaute', None)),
+        lower_barrier=float(request.GET.get('barriereBasse', None)),
+        rebate = float(request.GET.get('rebate', None)),
+        leverage=float(request.GET.get('leverage', None))/100,
+    )
+
+    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+
+    settings_dict = {
+        "underlying_name": request.GET.get('ticker'),
+        "rate_curve_type": RateCurveType.RF_US_TREASURY,
+        "interpolation_type": InterpolationType.SVENSSON,
+        "volatility_surface_type": volatility_surface_type,
+        "obs_frequency": None,
+        "day_count_convention": calendar_convention,
+        "model": Model.BLACK_SCHOLES,
+        "pricing_engine_type": PricingEngineType.MC,
+        "nb_paths": int(request.GET.get('nb_steps', 100)),
+        "nb_steps": 1000,
+        "random_seed": 4012,
+        "compute_greeks": False,
+    }
+
+    settings = PricingSettings(**settings_dict)
+    launcher = PricingLauncher(settings)
+    results = launcher.get_results(strategy)
+
+    price = results.price
+    greeks = results.greeks
+
+    initial_price = float(request.GET.get('ticker-price', 100))
+
+    prices = np.linspace(0, 3 * initial_price, 100)
+    payoffs = [strategy.payoff([initial_price, p]) for p in prices]
+
+    return JsonResponse({
+        'price': round(price, 2),
+        'greeks': greeks,
+        'payoff_data': {
+            'prices': prices.tolist(),
+            'payoffs': payoffs
+        }
     })

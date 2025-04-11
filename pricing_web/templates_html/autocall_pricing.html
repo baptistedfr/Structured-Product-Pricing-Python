@@ -11,6 +11,21 @@
         data-phoenix-options='{{ phoenix_options|safe }}'
         data-eagle-options='{{ eagle_options|safe }}'>
         
+        <div class="mb-4 text-center">
+            <label class="form-label fs-5">Mode de calcul</label>
+            <div class="d-flex justify-content-center gap-4 mt-2">
+                <div class="form-check form-check-inline fs-5">
+                    <input class="form-check-input" type="radio" name="pricing_mode" id="modeCoupon" value="coupon" checked>
+                    <label class="form-check-label" for="modeCoupon">Solver de Coupon</label>
+                </div>
+                <div class="form-check form-check-inline fs-5">
+                    <input class="form-check-input" type="radio" name="pricing_mode" id="modePricing" value="pricing">
+                    <label class="form-check-label" for="modePricing">Pricing d’Autocall</label>
+                </div>
+            </div>
+        </div>
+
+        
         <div class="row mb-3">
             <label class="form-label">Choisissez le produit autocallable</label>
             <div class="btn-group" role="group">
@@ -51,6 +66,10 @@
                 <label for="barriereCoupon" class="form-label">Barrière de Coupon (%)</label>
                 <input type="number" class="form-control" id="barriereCoupon" name="barriereCoupon" value="80">
             </div>
+            <div class="mb-3" id="manual-coupon-container" style="display: none;">
+                <label for="coupon" class="form-label">Coupon (%)</label>
+                <input type="number" class="form-control" id="coupon" name="coupon" value="5">
+            </div>
         </div>
         <div class="row">
             <div class="col-md-6 mb-3">
@@ -69,8 +88,8 @@
 
         <div class="row">
             <div class="col-md-4 mb-3">
-                <label for="maturity" class="form-label">Maturité (années)</label>
-                <input type="number" class="form-control" id="maturity" name="maturity" value="5" required>
+                <label for="maturity" class="form-label">Maturité (Date)</label>
+                <input type="date" class="form-control" id="maturity" name="maturity" required>
             </div>
             <div class="col-md-4 mb-3">
                 <label for="obs_frequency" class="form-label">Fréquences d'observations</label>
@@ -96,7 +115,7 @@
 
         
 
-        <button type="submit" class="btn btn-success w-100">Calculer le Prix</button>
+        <button type="submit" class="btn btn-success w-100">Calculer le Coupon</button>
     </form>
 
     <div id="loading-spinner" style="display: none; text-align: center; margin-top: 20px;">
