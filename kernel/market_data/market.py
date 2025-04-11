@@ -4,6 +4,8 @@ import pandas as pd
 from kernel.tools import *
 from kernel.market_data import RateCurve, InterpolationType,UnderlyingAsset, VolatilitySurfaceType, SVIVolatilitySurface
 import re
+import copy
+
 
 class Market:
     """
@@ -74,7 +76,7 @@ class Market:
         else:
             raise ValueError(f"Unrecognized unit: {unit}")
         
-    def _fetch_yield_curves(self):
+    def _fetch_yield_curves(self,bump: float = 0.0):
         """
         Fetches and initializes the yield curve data based on the specified rate curve type.
 
@@ -92,7 +94,7 @@ class Market:
             raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
         
         data_curve["Maturity"] = data_curve["Maturity"].apply(self._convert_maturities)
-
+        data_curve["Rate"] = data_curve["Rate"].astype(float) + bump
         rate_curve = RateCurve(data_curve=data_curve, interpolation_type=self.interpolation_type)
         rate_curve.calibrate()
 
@@ -121,7 +123,7 @@ class Market:
         
         self.underlying_asset.load_underlying_info(asset_info)
 
-    def _fetch_volatility_surface(self):
+    def _fetch_volatility_surface(self,bump: float = 0.0):
         """
         Feteches and format implied volatility data to prepare the volatility surface calibration.
         """
@@ -141,7 +143,7 @@ class Market:
             raise ValueError(f"Missing required columns: {', '.join(missing_columns)}")
         
         # Convertions
-        option_data['Implied Volatility'] = option_data['Implied Volatility'].astype(float)
+        option_data['Implied Volatility'] = option_data['Implied Volatility'].astype(float) + bump
         option_data['Strike'] = option_data['Strike'].astype(float)
         option_data["Maturity"] = option_data["Maturity"].apply(self._convert_maturities)
         option_data["Spot"] = self.underlying_asset.last_price
@@ -247,3 +249,13 @@ class Market:
         if not self.volatility_surface:
             self._fetch_volatility_surface()
         return self.volatility_surface.get_volatility(strike, maturity)
+    
+    def bump_volatility(self, bump: float) -> "Market":
+        bumped_market = copy.deepcopy(self)
+        bumped_market._fetch_volatility_surface(bump=bump)
+        return bumped_market
+    
+    def bump_flat_yield_curve(self, bump: float) -> "Market":
+        bumped_market = copy.deepcopy(self)
+        bumped_market._fetch_yield_curves(bump=bump)
+        return bumped_market

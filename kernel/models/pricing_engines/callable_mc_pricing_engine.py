@@ -25,17 +25,27 @@ class CallableMCPricingEngine(MCPricingEngine):
 
     def get_results(self, derivative) -> PricingResults: 
         result = PricingResults()
-        self._set_stochastic_process(derivative)
+        process = self.get_stochastic_process(derivative=derivative,market=self.market)
 
         if (self.compute_coupon):
-            coupon = self.get_coupon(derivative) #voir pour la paramétrisation du target price
+            coupon = self.get_coupon(derivative,process) #voir pour la paramétrisation du target price
             result.coupon_callable = coupon
         else :
-            price = self.get_price(derivative, self.stochastic_process)
+            price = self._get_price(derivative, process)
+            delta = self.get_delta(derivative)
+            gamma = self.get_gamma(derivative)
+            rho = self.get_rho(derivative)
+            vega = self.get_vega(derivative)
+            
             result.price = price
+            result.set_greek("delta", delta)
+            result.set_greek("gamma", gamma)
+            result.set_greek("rho", rho)
+            result.set_greek("vega", vega)
+            
         return result
 
-    def get_price(self, derivative: AbstractAutocall, process : StochasticProcess) -> float:
+    def _get_price(self, derivative: AbstractAutocall, process : StochasticProcess) -> float:
 
         scheme = EulerScheme()
         paths = scheme.simulate_paths(process, self.nb_paths, self.random_seed)
@@ -49,7 +59,7 @@ class CallableMCPricingEngine(MCPricingEngine):
             total_payoff.append(payoff * self.market.get_discount_factor(discount_time))
         return np.mean(total_payoff)
 
-    def get_coupon(self, derivative: 'CallableProduct', epsilon: float = 1e-2, max_iter: int = 25, target_price: float = 100) -> float: # type: ignore
+    def get_coupon(self, derivative: 'CallableProduct',process : StochasticProcess, epsilon: float = 1e-2, max_iter: int = 25, target_price: float = 100) -> float: # type: ignore
         """
         Computes the coupon of the structured product such that the price equals the target price (e.g., initial capital).
 
@@ -73,7 +83,7 @@ class CallableMCPricingEngine(MCPricingEngine):
             derivative.coupon_rate = mid_coupon
 
             # Compute the price for the current coupon
-            price = self.get_price(derivative,self.stochastic_process)
+            price = self._get_price(derivative,process)
 
             # Check if the price is close enough to the target price
             if abs(price - target_price) < epsilon:

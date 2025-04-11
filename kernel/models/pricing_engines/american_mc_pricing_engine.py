@@ -26,9 +26,20 @@ class AmericanMCPricingEngine(MCPricingEngine):
 
     def get_results(self, derivative : AmericanAbstractOption) -> PricingResults: 
         result = PricingResults()
-        self._set_stochastic_process(derivative)
-        price = self._get_price(derivative, self.stochastic_process)
+        process = self.get_stochastic_process(derivative=derivative,market=self.market)
+        price = self._get_price(derivative, process)
+
+        delta = self.get_delta(derivative)
+        gamma = self.get_gamma(derivative)
+        rho = self.get_rho(derivative)
+        vega = self.get_vega(derivative)
+
         result.price = price
+        result.set_greek("delta", delta)
+        result.set_greek("gamma", gamma)
+        result.set_greek("rho", rho)
+        result.set_greek("vega", vega)
+
 
         return result
 

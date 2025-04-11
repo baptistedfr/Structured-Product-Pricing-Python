@@ -36,3 +36,8 @@ class Model(Enum):
     """
     BLACK_SCHOLES = "Black-Scholes"
     HESTON = "Heston"
+    
+class EquityGreeksName(Enum):
+    DELTA = "delta"
+    VEGA = "vega"
+    GAMMA = "gamma"
