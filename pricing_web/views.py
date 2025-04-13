@@ -587,3 +587,63 @@ def calculate_bond_price(request):
     return JsonResponse({
         'price': round(price, 2),
     })
+
+# Calculer le prix d'un swap
+def swap_pricing_view(request):
+    """
+    Cette vue sert à afficher la page de pricing des swaps.
+    """
+    context = {
+        'calendar_conventions': [
+            {'value': 'act_360', 'label': 'Actual/360'},
+            {'value': 'act_365', 'label': 'Actual/365'},
+            {'value': 'act_act', 'label': 'Actual/Actual'},
+            {'value': '30_360', 'label': '30/360'}
+        ],
+        'observation_frequencies': [
+            {'value': 'annual', 'label': 'Annuelles'},
+            {'value': 'semiannual', 'label': 'Semestrielles'},
+            {'value': 'quarterly', 'label': 'Trimestrielles'},
+            {'value': 'monthly', 'label': 'Mensuelles'}
+        ]
+    }
+    return render(request, 'swap_pricing.html', context)
+
+# Calculer le rate d'un swap
+def calculate_swap_rate(request):
+    """
+    Cette vue sert à calculer le rate d'un swap en fonction des paramètres reçus dans la requête GET.
+    """
+    obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
+    
+    calendar_convention = CalendarConvention.ACT_360
+
+    maturity_date = request.GET.get('maturity')
+    maturity = get_year_fraction(calendar_convention, 
+                                 datetime.now(), 
+                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
+    
+    rate = 3.9  # Exemple de taux swap pour le calcul du coupon
+    print(rate)
+    return JsonResponse({
+        'rate': round(rate, 2),
+    })
+
+# Calculer le prix d'un swap
+def calculate_swap_price(request):
+    """
+    Cette vue sert à calculer le prix d'un swap en fonction des paramètres reçus dans la requête GET.
+    """
+    obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
+    
+    calendar_convention = CalendarConvention.ACT_360
+
+    maturity_date = request.GET.get('maturity')
+    maturity = get_year_fraction(calendar_convention, 
+                                 datetime.now(), 
+                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
+    
+    price = 18
+    return JsonResponse({
+        'price': round(price, 2),
+    })

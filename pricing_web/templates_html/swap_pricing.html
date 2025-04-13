@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Pricer d'obligations{% endblock %}
+{% block title %}Pricer de Swaps{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h1 class="text-center">Pricer d'obligations</h1>
+    <h1 class="text-center">Pricer de Swaps</h1>
         <form id="pricing-form"
-            data-bond-options='{{ bond_options|safe }}'>
+            data-bond-options='{{ swap_options|safe }}'>
         <div class="mb-4 text-center">
             <label class="form-label fs-5">Mode de calcul</label>
             <div class="d-flex justify-content-center gap-4 mt-2">
                 <div class="form-check form-check-inline fs-5">
                     <input class="form-check-input" type="radio" name="pricing_mode" id="modeCoupon" value="coupon" checked>
-                    <label class="form-check-label" for="modeCoupon">Solver de Coupon</label>
+                    <label class="form-check-label" for="modeCoupon">Calculer le taux fixe</label>
                 </div>
                 <div class="form-check form-check-inline fs-5">
                     <input class="form-check-input" type="radio" name="pricing_mode" id="modePricing" value="pricing">
-                    <label class="form-check-label" for="modePricing">Pricing d'obligations</label>
+                    <label class="form-check-label" for="modePricing">Pricing de Swap</label>
                 </div>
             </div>
         </div>
@@ -29,11 +29,11 @@
             </div>
             <div class="col-md-4 mb-3" id="price-container" style="display: none;">
                 <label for="price" class="form-label">Prix (€)</label>
-                <input type="number" class="form-control" id="price" name="price" value="100">
+                <input type="number" class="form-control" id="price" name="price" value="0">
             </div>
-            <div class="col-md-4 mb-3" id="ytm-container" style="display: none;">
-                <label for="coupon" class="form-label">YTM (%)</label>
-                <input type="number" class="form-control" id="coupon" name="ytm" value="7">
+            <div class="col-md-4 mb-3" id="rate-container" style="display: none;">
+                <label for="rate" class="form-label">Taux Fixe (%)</label>
+                <input type="number" class="form-control" id="rate" name="rate" value="3.5">
             </div>
         </div>
         
@@ -55,13 +55,6 @@
             </div>
         </div>
 
-        <div class="row">
-
-            <div class="col-md-4 mb-3">
-                <label for="coupon" class="form-label">Taux de coupon (%)</label>
-                <input type="number" class="form-control" id="coupon" name="coupon" value="5" required>
-            </div>
-        </div>
 
         <div class="row">
             <div class="col-md-4 mb-3">
@@ -83,7 +76,7 @@
             </div>
         </div>
 
-        <button type="submit" id="calculate-btn" class="btn btn-success w-100">Calculer le YTM</button>
+        <button type="submit" id="calculate-btn" class="btn btn-success w-100">Calculer le Taux Fixe</button>
     </form>
 
     <div id="loading-spinner" style="display: none; text-align: center; margin-top: 20px;">
@@ -93,13 +86,13 @@
         <p>Calcul en cours...</p>
     </div>
 
-    <div id="bond-result-container" class="mt-4 text-center" style="display: none;">
+    <div id="swap-result-container" class="mt-4 text-center" style="display: none;">
         <h2>Résultats</h2>
         <!-- <p><strong>Prix Calculé :</strong></p> -->
-        <p id="bond-price" class="fs-2 fw-bold">-</p>
+        <p id="swap-price" class="fs-2 fw-bold">-</p>
         <br>
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{% static 'js/bond_pricer.js' %}"></script>
+<script src="{% static 'js/swap_pricer.js' %}"></script>
 {% endblock %}

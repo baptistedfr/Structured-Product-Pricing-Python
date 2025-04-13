@@ -24,4 +24,8 @@ urlpatterns = [
     path('calculate_bond_coupon', views.calculate_bond_coupon,  name='calculate_bond_coupon'),
     path('calculate_bond_price', views.calculate_bond_price,  name='calculate_bond_price'),
 
+    path('swap/', views.swap_pricing_view, name='swap_pricing'),
+    path('calculate_swap_rate', views.calculate_swap_rate,  name='calculate_swap_rate'),
+    path('calculate_swap_price', views.calculate_swap_price,  name='calculate_swap_price'),
+
 ]

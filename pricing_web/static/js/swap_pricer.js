@@ -1,8 +1,8 @@
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("pricing-form");
-    const resultPrice = document.getElementById("bond-price");
+    const resultPrice = document.getElementById("swap-price");
     const priceContainer = document.getElementById("price-container");
-    const ytmContainer = document.getElementById("ytm-container");
+    const rateContainer = document.getElementById("rate-container");
     const spinner = document.getElementById("loading-spinner");
     const pricingModeRadios = document.getElementsByName("pricing_mode");
     const calculateBtn = document.getElementById("calculate-btn");
@@ -21,15 +21,16 @@ document.addEventListener("DOMContentLoaded", function () {
     achatInput.value = todayDate;
 
     function toggleManualCouponInput() {
+        console.log("hr")
         const selectedMode = Array.from(pricingModeRadios).find(radio => radio.checked)?.value;
         if (selectedMode === "pricing") {
             priceContainer.style.display = "none";
-            ytmContainer.style.display = "block";
+            rateContainer.style.display = "block";
             calculateBtn.textContent = "Calculer le Prix";
         } else {
             priceContainer.style.display = "block";
-            ytmContainer.style.display = "none";
-            calculateBtn.textContent = "Calculer le YTM";
+            rateContainer.style.display = "none";
+            calculateBtn.textContent = "Calculer le taux fixe";
         }
     }
 
@@ -42,19 +43,20 @@ document.addEventListener("DOMContentLoaded", function () {
         const queryString = new URLSearchParams(formData).toString();
         const selectedMode = Array.from(pricingModeRadios).find(radio => radio.checked)?.value;
         const isPricingMode = selectedMode === "pricing";
+        
         const url = isPricingMode
-            ? `/calculate_bond_price?${queryString}`
-            : `/calculate_bond_coupon?${queryString}`;
+            ? `/calculate_swap_price?${queryString}`
+            : `/calculate_swap_rate?${queryString}`;
 
         fetch(url + queryString)
             .then(response => response.json())
             .then(data => {
-                document.getElementById("bond-result-container").style.display = "block";
+                document.getElementById("swap-result-container").style.display = "block";
 
                 spinner.style.display = 'none';
                 resultPrice.textContent = isPricingMode
                 ? `Prix : ${data.price} €`
-                : `YTM : ${data.ytm} %`;
+                : `Taux Fixe : ${data.rate} %`;
                 
             })
             .catch(err => {

@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const spinner = document.getElementById("loading-spinner");
     const pricingModeRadios = document.getElementsByName("pricing_mode");
     const manualCouponContainer = document.getElementById("manual-coupon-container");
-
+    const calculateBtn = document.getElementById("calculate-btn");
     const maturityInput = document.getElementById("maturity");
     const today = new Date();
     const nextYear = new Date(today.setFullYear(today.getFullYear() + 3));
@@ -21,8 +21,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const selectedMode = Array.from(pricingModeRadios).find(radio => radio.checked)?.value;
         if (selectedMode === "pricing") {
             manualCouponContainer.style.display = "block";
+            calculateBtn.textContent = "Calculer le Prix";
         } else {
             manualCouponContainer.style.display = "none";
+            calculateBtn.textContent = "Calculer le Coupon";
         }
     }
 
