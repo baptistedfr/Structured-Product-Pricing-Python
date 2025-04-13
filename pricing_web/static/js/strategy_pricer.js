@@ -10,6 +10,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const maturityCalendarInput = document.getElementById("maturity_calendar");
     const labelMaturityCalendar = document.getElementById("label-maturity-calendar");
 
+    const maturityInput = document.getElementById("maturity");
+    const today = new Date();
+    const nextYear = new Date(today.setFullYear(today.getFullYear() + 1));
+    const formattedDate = nextYear.toISOString().split('T')[0];
+    // Définir la date dans le champ input
+    maturityInput.value = formattedDate;
+    
     // Fonction pour afficher/mettre à jour les champs de strike dynamiquement
     function displayMultipleStrikes(numberOfStrikes) {
         strikeFieldsContainer.innerHTML = ""; // Réinitialiser les champs de strike

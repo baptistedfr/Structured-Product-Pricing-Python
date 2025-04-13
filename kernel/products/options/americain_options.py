@@ -30,7 +30,7 @@ class AmericanPutOption(AmericanAbstractOption):
 
     def __init__(self, strike:float, maturity:float):
         super().__init__(strike=strike, maturity=maturity)
-
+    
     def instrinsec_payoff(self, S:np.ndarray):
         return np.maximum(self.strike - S, 0)
 
@@ -39,8 +39,15 @@ class BermudeanCallOption(AmericanCallOption):
     def __init__(self, strike, maturity, exercise_times):
         super().__init__(strike=strike, maturity=maturity)
         self.exercise_times = exercise_times
+    
+    def instrinsec_payoff(self, S):
+        return np.maximum(S - self.strike, 0)
+    
 
 class BermudeanPutOption(AmericanPutOption):
     def __init__(self, strike:float, maturity:float, exercise_times:List[float]):
         super().__init__(strike=strike, maturity=maturity)
         self.exercise_times = exercise_times
+    
+    def instrinsec_payoff(self, S:np.ndarray):
+        return np.maximum(self.strike - S, 0)

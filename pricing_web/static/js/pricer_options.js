@@ -1,6 +1,8 @@
 document.addEventListener("DOMContentLoaded", function () {
     const form = document.getElementById("pricing-form");
     const optionTypeRadios = document.getElementsByName("option_type");
+
+    const bermudeanContainer = document.getElementById("bermudean-options-container");
     const subtypeSelect = document.getElementById("subtype");
     const tickerSelect = document.getElementById("ticker");
     const tickerPriceInput = document.getElementById("ticker-price");
@@ -12,6 +14,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let payoffChart = null;
 
+    const maturityInput = document.getElementById("maturity");
+    const today = new Date();
+    const nextYear = new Date(today.setFullYear(today.getFullYear() + 1));
+    const formattedDate = nextYear.toISOString().split('T')[0];
+
+
+    const nextObsDateInput = document.getElementById("next_obs_date");
+    const defaultDate = new Date();
+    defaultDate.setMonth(defaultDate.getMonth() + 3);
+    nextObsDateInput.value = defaultDate.toISOString().split('T')[0];
+    // Définir la date dans le champ input
+    maturityInput.value = formattedDate;
+
     const optionsData = {
         vanilla: JSON.parse(form.dataset.vanillaOptions),
         path_dependent: JSON.parse(form.dataset.pathDependentOptions),
@@ -21,6 +36,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function toggleFields() {
         const selectedOptionType = document.querySelector("input[name='option_type']:checked")?.value;
+
         if (!selectedOptionType) return;
 
         const options = optionsData[selectedOptionType];
@@ -29,6 +45,16 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("subtype-fields").style.display = "block";
         document.getElementById("barrier-fields").style.display = selectedOptionType === "barrier" ? "block" : "none";
         document.getElementById("coupon-fields").style.display = selectedOptionType === "binary" ? "block" : "none";
+
+    }
+
+    function toggleBermudeanFields() {
+        const selectedSubtype = subtypeSelect.value;
+        if (selectedSubtype === "BermudeanCallOption" || selectedSubtype === "BermudeanPutOption") {
+            bermudeanContainer.style.display = "block";
+        } else {
+            bermudeanContainer.style.display = "none";
+        }
     }
 
     function populateSubtypes(options) {
@@ -180,8 +206,10 @@ document.addEventListener("DOMContentLoaded", function () {
     optionTypeRadios.forEach(radio => radio.addEventListener("change", toggleFields));
     volTypeSelect.addEventListener("change", toggleConstantVolInput);
     tickerSelect.addEventListener("change", fetchTickerPrice);
+    subtypeSelect.addEventListener("change", toggleBermudeanFields);
 
     toggleFields();
     toggleConstantVolInput();
     fetchTickerPrice();
+    toggleBermudeanFields();
 });

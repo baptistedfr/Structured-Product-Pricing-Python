@@ -65,7 +65,7 @@ class TwinWin(AbstractParticipationProduct):
         else:
             # Participation dans la plage définie par les barrières
             payoff = self.leverage * abs(performance - 100) + 100
-        print(payoff)
+
         return payoff
 
     def description(self) -> str:

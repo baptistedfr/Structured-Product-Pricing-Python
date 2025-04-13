@@ -198,9 +198,9 @@ class MCPricingEngine(AbstractPricingEngine):
 
             process_down = self.get_stochastic_process(derivative, bumped_market_down)
             
-            vol_up = bumped_market_up.get_volatility(derivative.strike, derivative.maturity)
-            vol = self.market.get_volatility(derivative.strike, derivative.maturity)
-            vol_down = bumped_market_down.get_volatility(derivative.strike, derivative.maturity)
+            # vol_up = bumped_market_up.get_volatility(derivative.strike, derivative.maturity)
+            # vol = self.market.get_volatility(derivative.strike, derivative.maturity)
+            # vol_down = bumped_market_down.get_volatility(derivative.strike, derivative.maturity)
 
             #print("epsilon",epsilon)
             #print("diff up ",vol_up-vol)

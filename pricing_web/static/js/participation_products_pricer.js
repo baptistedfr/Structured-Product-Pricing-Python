@@ -7,6 +7,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const resultPrice = document.getElementById("price");
     const spinner = document.getElementById("loading-spinner");
 
+    const maturityInput = document.getElementById("maturity");
+    const today = new Date();
+    const nextYear = new Date(today.setFullYear(today.getFullYear() + 3));
+    const formattedDate = nextYear.toISOString().split('T')[0];
+    // Définir la date dans le champ input
+    maturityInput.value = formattedDate;
+
     // Fonction pour récupérer le prix du ticker
     function fetchTickerPrice() {
         fetch(`/get_ticker_price?ticker=${tickerSelect.value}`)

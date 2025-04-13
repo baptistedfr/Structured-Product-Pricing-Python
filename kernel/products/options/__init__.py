@@ -35,4 +35,11 @@ from .multi_assets_options import(
     BestOfCallOption,
     BestOfPutOption)
 
+from .americain_options import (
+    AmericanCallOption,
+    AmericanPutOption,
+    BermudeanCallOption,
+    BermudeanPutOption,
+)
+
 from .abstract_option import AbstractOption

@@ -63,6 +63,27 @@
                 <input type="number" class="form-control" id="nb_paths" name="nb_paths" value="10000" required>
             </div>
         </div>
+
+        <div id="bermudean-options-container" style="display: none;">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="next_obs_date" class="form-label">Prochaine date d'observation</label>
+                    <input type="date" class="form-control" id="next_obs_date" name="next_obs_date" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="obs_frequency" class="form-label">Fréquence d'observation</label>
+                    <select class="form-select" id="obs_frequency" name="obs_frequency" required>
+                        {% for obs in observation_frequencies %}
+                        <option value="{{ obs.value }}" {% if obs.value == "quarterly" %}selected{% endif %}>
+                            {{ obs.label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        
         <div class="mb-3" id="barrier-fields" style="display: none;">
             <label for="barrier" class="form-label">Barrière</label>
             <input type="number" class="form-control" id="barrier" name="barrier">

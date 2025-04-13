@@ -64,6 +64,10 @@ def get_options():
             {'value': 'EuropeanPutOption', 'label': 'Put'}
         ],
         'path_dependent_options': [
+            {'value': 'AmericanCallOption', 'label': 'American Call'},
+            {'value': 'AmericanPutOption', 'label': 'American Put'},
+            {'value': 'BermudeanCallOption', 'label': 'Bermudean Call'},
+            {'value': 'BermudeanPutOption', 'label': 'Bermudean Put'},
             {'value': 'AsianCallOption', 'label': 'Asian Call'},
             {'value': 'AsianPutOption', 'label': 'Asian Put'},
             {'value': 'LookbackCallOption', 'label': 'Lookback Call'},
@@ -120,7 +124,13 @@ def pricer_view(request):
         'vanilla_options': json.dumps(options_data['vanilla_options']),
         'path_dependent_options': json.dumps(options_data['path_dependent_options']),
         'barrier_options': json.dumps(options_data['barrier_options']),
-        'binary_options': json.dumps(options_data['binary_options'])
+        'binary_options': json.dumps(options_data['binary_options']),
+        'observation_frequencies': [
+            {'value': 'annual', 'label': 'Annuelles'},
+            {'value': 'semiannual', 'label': 'Semestrielles'},
+            {'value': 'quarterly', 'label': 'Trimestrielles'},
+            {'value': 'monthly', 'label': 'Mensuelles'}
+        ]
     }
     return render(request, 'options.html', context)
 
@@ -150,11 +160,33 @@ def calculate_price_options(request):
     maturity = get_year_fraction(calendar_convention, 
                                  datetime.now(), 
                                  datetime.strptime(maturity_date, '%Y-%m-%d'))
- 
+    
+    
     # Validation du type d'option
     subtype = request.GET.get('subtype')
     if subtype not in OPTION_CLASSES:
         return JsonResponse({'error': 'Option type not recognized'}, status=400)
+
+    pricing_engine_type = PricingEngineType.MC
+    if subtype in american_like_options:
+        pricing_engine_type = PricingEngineType.AMERICAN_MC
+    
+    bermudean_types = {'BermudeanCallOption', 'BermudeanPutOption'}
+    exercise_times = None
+    if subtype in bermudean_types:
+        next_obs_date = request.GET.get('next_obs_date')
+        obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
+        next_exercise_time = get_year_fraction(calendar_convention, 
+                                 datetime.now(), 
+                                 datetime.strptime(next_obs_date, '%Y-%m-%d'))
+        maturity = maturity
+        obs_frequency = 1 / obs_frequency.value
+
+        exercise_times = []
+        while next_exercise_time < maturity:
+            exercise_times.append(round(next_exercise_time, 6))  # arrondi pour éviter des erreurs flottantes
+            next_exercise_time += obs_frequency
+    
 
     # Créer l'option avec les paramètres
     option = create_option(
@@ -162,7 +194,8 @@ def calculate_price_options(request):
         maturity=maturity,
         strike=float(request.GET.get('strike', 100)),
         barrier=float(request.GET.get('barrier', None)) if request.GET.get('barrier') else None,
-        coupon=float(request.GET.get('coupon', None)) if request.GET.get('coupon') else None
+        coupon=float(request.GET.get('coupon', None)) if request.GET.get('coupon') else None,
+        exercise_times=exercise_times
     )
 
     volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
@@ -175,12 +208,13 @@ def calculate_price_options(request):
         "obs_frequency": None,
         "day_count_convention": calendar_convention,
         "model": Model.BLACK_SCHOLES,
-        "pricing_engine_type": PricingEngineType.MC,
+        "pricing_engine_type": pricing_engine_type,
         "nb_paths": int(request.GET.get('nb_steps', 100)),
         "nb_steps": 1000,
         "random_seed": 4012,
         "compute_greeks": False,
     }
+
     settings = PricingSettings(**settings_dict)
     launcher = PricingLauncher(pricing_settings=settings)
     results = launcher.get_results(option)
@@ -190,7 +224,10 @@ def calculate_price_options(request):
 
     # Générer le graphique de payoff
     prices = np.linspace(0.5 * float(request.GET.get('strike', 100)), 1.5 * float(request.GET.get('strike', 100)), 100)
-    payoffs = [option.payoff([p]) for p in prices]
+    if subtype in american_like_options:
+        payoffs = [option.instrinsec_payoff(p) for p in prices]
+    else:
+        payoffs = [option.payoff([p]) for p in prices]
 
     return JsonResponse({
         'price': round(price, 2),
@@ -346,6 +383,10 @@ def calculate_autocall_coupon(request):
     results_autocall = launcher_autocall.get_results(autocall)
 
     coupon = results_autocall.coupon_callable
+
+    settings.compute_callable_coupons = False
+    autocall.coupon_rate = coupon  # Mettre à jour le taux de coupon de l'autocall
+    results_autocall = launcher_autocall.get_results(autocall)
     greeks = results_autocall.greeks
 
     return JsonResponse({

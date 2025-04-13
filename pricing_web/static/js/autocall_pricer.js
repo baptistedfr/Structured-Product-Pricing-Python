@@ -10,6 +10,13 @@ document.addEventListener("DOMContentLoaded", function () {
     const pricingModeRadios = document.getElementsByName("pricing_mode");
     const manualCouponContainer = document.getElementById("manual-coupon-container");
 
+    const maturityInput = document.getElementById("maturity");
+    const today = new Date();
+    const nextYear = new Date(today.setFullYear(today.getFullYear() + 3));
+    const formattedDate = nextYear.toISOString().split('T')[0];
+    // Définir la date dans le champ input
+    maturityInput.value = formattedDate;
+
     function toggleManualCouponInput() {
         const selectedMode = Array.from(pricingModeRadios).find(radio => radio.checked)?.value;
         if (selectedMode === "pricing") {

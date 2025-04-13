@@ -18,6 +18,10 @@ OPTION_CLASSES = {
     'EuropeanCallOption': EuropeanCallOption,
     'EuropeanPutOption': EuropeanPutOption,
 
+    'AmericanCallOption': AmericanCallOption,
+    'AmericanPutOption': AmericanPutOption,
+    'BermudeanCallOption': BermudeanCallOption,
+    'BermudeanPutOption': BermudeanPutOption,
     'AsianCallOption': AsianCallOption,
     'AsianPutOption': AsianPutOption,
     'FloatingStrikeCallOption': FloatingStrikeCallOption,
@@ -37,18 +41,28 @@ OPTION_CLASSES = {
     'DownAndOutPutOption': DownAndOutPutOption
 }
 
-def create_option(option_type, maturity, strike, barrier, coupon):
+american_like_options = {
+    'AmericanCallOption',
+    'AmericanPutOption',
+    'BermudeanCallOption',
+    'BermudeanPutOption',
+}
+
+
+def create_option(option_type, maturity, strike, barrier, coupon, exercise_times=None):
     # Crée l'option en fonction du type et des paramètres fournis
     if option_type in ['UpAndInCallOption', 'UpAndOutCallOption','DownAndInCallOption','DownAndOutCallOption',
                        'UpAndInPutOption', 'DownAndInPutOption', 'UpAndOutPutOption','DownAndOutPutOption']:  # Options barrières
         return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, barrier=barrier)
     elif option_type in ['BinaryCallOption', 'BinaryPutOption']:  # Options binaires
         return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, coupon=coupon)
+    elif option_type in ['BermudeanCallOption', 'BermudeanPutOption']:  # Options Bermudéennes
+        return OPTION_CLASSES[option_type](maturity=maturity, strike=strike, exercise_times=exercise_times)
     else:  # Options simples
         return OPTION_CLASSES[option_type](maturity=maturity, strike=strike)
     
 
-    # Pour les stratégies optionnelles
+# Pour les stratégies optionnelles
 
 STRATEGY_CLASSES = {
     'Straddle': Straddle,
@@ -131,7 +145,7 @@ def create_strategy(strategy_type, maturity, strikes=None, maturity_calendar=Non
     
 
 def create_autocall(autocall_type, maturity, obs_frequency, barriere_capital, barriere_rappel, barriere_coupon, is_plus, is_security, coupon_rate = 5.0):
-    print(coupon_rate)
+
     if autocall_type == 'phoenix':
         # Straddle avec un seul strike pour le call et le put
         return Phoenix(maturity=maturity, 
@@ -155,7 +169,7 @@ def create_autocall(autocall_type, maturity, obs_frequency, barriere_capital, ba
         raise ValueError(f"Type d'autocall '{autocall_type}' non reconnu.")
     
 def create_participation_product(product_type, maturity, upper_barrier, lower_barrier, leverage, rebate):
-    print(leverage, rebate)
+
     if product_type == 'twinwin':
 
         return TwinWin(maturity=maturity, 
