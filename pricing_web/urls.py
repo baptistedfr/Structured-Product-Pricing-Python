@@ -20,4 +20,8 @@ urlpatterns = [
     path('participation_products/', views.participation_products_view, name='participation_products_pricing'),
     path('calculate_participation_products', views.calculate_participation_products,  name='calculate_participation_products'),
 
+    path('bond/', views.bond_pricing_view, name='bond_pricing'),
+    path('calculate_bond_coupon', views.calculate_bond_coupon,  name='calculate_bond_coupon'),
+    path('calculate_bond_price', views.calculate_bond_price,  name='calculate_bond_price'),
+
 ]

@@ -526,3 +526,64 @@ def calculate_participation_products(request):
             'payoffs': payoffs
         }
     })
+
+
+# Calculer le prix d'un bond
+def bond_pricing_view(request):
+    """
+    Cette vue sert à afficher la page de pricing des bonds.
+    """
+    context = {
+        'calendar_conventions': [
+            {'value': 'act_360', 'label': 'Actual/360'},
+            {'value': 'act_365', 'label': 'Actual/365'},
+            {'value': 'act_act', 'label': 'Actual/Actual'},
+            {'value': '30_360', 'label': '30/360'}
+        ],
+        'observation_frequencies': [
+            {'value': 'annual', 'label': 'Annuelles'},
+            {'value': 'semiannual', 'label': 'Semestrielles'},
+            {'value': 'quarterly', 'label': 'Trimestrielles'},
+            {'value': 'monthly', 'label': 'Mensuelles'}
+        ]
+    }
+    return render(request, 'bond_pricing.html', context)
+
+# Calculer le coupon d'un bond
+def calculate_bond_coupon(request):
+    """
+    Cette vue sert à calculer le coupon d'un autocall en fonction des paramètres reçus dans la requête GET.
+    """
+    obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
+    
+    calendar_convention = CalendarConvention.ACT_360
+
+    maturity_date = request.GET.get('maturity')
+    maturity = get_year_fraction(calendar_convention, 
+                                 datetime.now(), 
+                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
+    
+    ytm = 3.5  # Exemple de taux de rendement à l'échéance (YTM) pour le calcul du coupon
+
+    return JsonResponse({
+        'ytm': round(ytm, 2),
+    })
+
+# Calculer le prix d'un bond
+def calculate_bond_price(request):
+    """
+    Cette vue sert à calculer le coupon d'un bond en fonction des paramètres reçus dans la requête GET.
+    """
+    obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
+    
+    calendar_convention = CalendarConvention.ACT_360
+
+    maturity_date = request.GET.get('maturity')
+    maturity = get_year_fraction(calendar_convention, 
+                                 datetime.now(), 
+                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
+    
+    price = 1000
+    return JsonResponse({
+        'price': round(price, 2),
+    })

@@ -1,6 +1,6 @@
 from kernel.products import *
 from kernel.market_data.volatility_surface.enums_volatility import VolatilitySurfaceType
-from kernel.tools import  ObservationFrequency
+from kernel.tools import  ObservationFrequency, CalendarConvention
 VOL_CONV = {
     "svi" : VolatilitySurfaceType.SVI,
     "ssvi" : VolatilitySurfaceType.SSVI,
@@ -12,6 +12,13 @@ OBS_FREQ = {
     "semiannual" : ObservationFrequency.SEMIANNUAL,
     "quarterly" : ObservationFrequency.QUARTERLY,
     "monthly" : ObservationFrequency.MONTHLY,
+}
+
+CALENDAR_CONVENTION = {
+    "act_360": CalendarConvention.ACT_360,
+    "act_365": CalendarConvention.ACT_365,
+    "act_act": CalendarConvention.ACT_ACT,
+    "30_360": CalendarConvention.THIRTY_360,
 }
 
 OPTION_CLASSES = {
