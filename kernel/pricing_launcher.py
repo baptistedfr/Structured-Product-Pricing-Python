@@ -36,7 +36,7 @@ class PricingLauncher:
         """
         # Initialize market
         self._init_market()
-
+        
         # Initialize pricer
         engine = PricingEngineType[self.settings.pricing_engine_type.name].value(market=self.market,settings=self.settings)
         results = engine.get_results(derivative=derivative)
