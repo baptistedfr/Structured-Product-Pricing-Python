@@ -32,24 +32,25 @@ class EulerScheme:
     def _simulate_two_factor(self, process: TwoFactorStochasticProcess, nb_paths: int, seed: int) -> np.ndarray:
         paths = np.zeros((nb_paths, process.nb_steps + 1, 2))
         paths[:, 0, 0] = process.S0
-        paths[:, 0, 1] = process.V0
+        paths[:, 0, 1] = process.v0
         dt = process.dt
         sqrt_dt = np.sqrt(dt)
-
+        dW1, dW2 = process.get_random_increments(nb_paths, seed)
         for i in range(process.nb_steps):
             t = i * dt
             x = paths[:, i, 0]
             v = paths[:, i, 1]
-            dW1, dW2 = process.get_random_increments(nb_paths, seed + i)
+            dW1_i = dW1[:, i]
+            dW2_i = dW2[:, i]
 
             drift = process.get_drift(i, x)
             vol_drift = process.get_vol_drift(i, v)
             vol_vol = process.get_vol_vol(i, v)
 
-            x_next = x + drift * dt + np.sqrt(np.maximum(v, 0)) * x * sqrt_dt * dW1
-            v_next = v + vol_drift * dt + vol_vol * sqrt_dt * dW2
+            x_next = x + drift * dt + np.sqrt(np.maximum(v, 0)) * x * sqrt_dt * dW1_i
+            v_next = v + vol_drift * dt + vol_vol * sqrt_dt * dW2_i
 
             paths[:, i + 1, 0] = x_next
             paths[:, i + 1, 1] = v_next
 
-        return paths
+        return paths[:, :, 0] 

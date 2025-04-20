@@ -74,14 +74,13 @@ class MCPricingEngine(AbstractPricingEngine):
         delta= self.get_delta(derivative=derivative, epsilon=1) * position
         gamma = self.get_gamma(derivative=derivative, epsilon=1) * position
         vega = self.get_vega(derivative=derivative, epsilon=0.01) * position
-        vega2 = self.get_vega2(derivative=derivative, epsilon=0.01) * position
         rho = self.get_rho(derivative=derivative, epsilon=0.0001) * position
-
+        theta = self.get_theta(price=price, delta=delta, gamma=gamma, vega=vega, derivative=derivative, market=self.market) * position
         pricing_results.set_greek("delta", delta)
         pricing_results.set_greek("gamma", gamma)
         pricing_results.set_greek("vega", vega)
-        pricing_results.set_greek("vega2", vega2)
         pricing_results.set_greek("rho", rho)
+        pricing_results.set_greek("theta", theta)
         
         return pricing_results
     
@@ -104,11 +103,12 @@ class MCPricingEngine(AbstractPricingEngine):
         if self.model.name == "BLACK_SCHOLES":
             return BlackScholesProcess(S0=initial_value, T=T, nb_steps=self.nb_steps, drift=drift, volatility=volatility)
         elif self.model.name == "HESTON":
-            theta = volatility ** 2
-            kappa = 1
-            ksi = 0.1
-            rho = -0.5
-            return HestonProcess(S0=initial_value, T=T, nb_steps=self.nb_steps, drift=drift, theta=theta, kappa=kappa, ksi=ksi, rho=rho)
+            kappa= 8.1471
+            theta = 0.0736
+            sigma = 0.3905
+            rho = -0.1707
+            v0= volatility**2
+            return HestonProcess(S0=initial_value,v0=v0,T=T,nb_steps=self.nb_steps,drift=drift,kappa=kappa,theta=theta,sigma=sigma,rho=rho)
 
     def _get_price(self, derivative: AbstractOption,stochastic_process: StochasticProcess) -> float:
         #le paramètre process servira probablement pour les grecs
@@ -135,7 +135,7 @@ class MCPricingEngine(AbstractPricingEngine):
         delta = (price_up - price_down) / (2 * epsilon)
         return delta
     
-    def get_gamma(self, derivative: AbstractOption, epsilon: float =0.1) -> float:
+    def get_gamma(self, derivative: AbstractOption, epsilon: float =1) -> float:
         """
         Calcule le gamma du produit, c'est-à-dire la seconde dérivée du prix par rapport 
         au prix du sous-jacent, en utilisant une différence finie centrée.
@@ -184,33 +184,15 @@ class MCPricingEngine(AbstractPricingEngine):
             price_down = self._get_price(derivative, process_down)
     
             vega = (price_up - price_down) / (2 * epsilon)
-        return vega
-    
-    def get_vega2(self,derivative : AbstractOption,epsilon: float = 0.01) -> float:
-        #on va bumper directement la market data et recalibrer la vol 
-
-        vega = 0.0
-        if(self.model.name == "BLACK_SCHOLES"):
-            epsilon_fit = epsilon * 100 #les fichiers d'input sont en %
-            bumped_market_up = self.market.bump_volatility(bump=epsilon_fit)
-            bumped_market_down = self.market.bump_volatility(bump=-epsilon_fit)
-            process_up = self.get_stochastic_process(derivative, bumped_market_up) 
-
-            process_down = self.get_stochastic_process(derivative, bumped_market_down)
-            
-            # vol_up = bumped_market_up.get_volatility(derivative.strike, derivative.maturity)
-            # vol = self.market.get_volatility(derivative.strike, derivative.maturity)
-            # vol_down = bumped_market_down.get_volatility(derivative.strike, derivative.maturity)
-
-            #print("epsilon",epsilon)
-            #print("diff up ",vol_up-vol)
-            #print("diff down ",vol_down-vol)
-
-
+        if(self.model.name == "HESTON"):
+            process_up = self.get_stochastic_process(derivative, self.market)
+            process_up.v0 += epsilon
+            process_down = self.get_stochastic_process(derivative, self.market)
+            process_down.v0 -= epsilon
             price_up = self._get_price(derivative, process_up)
             price_down = self._get_price(derivative, process_down)
-    
             vega = (price_up - price_down) / (2 * epsilon)
+
         return vega
     
     def get_rho(self,derivative:AbstractOption,epsilon:float=0.0001):
@@ -230,5 +212,40 @@ class MCPricingEngine(AbstractPricingEngine):
         price_down = self._get_price(derivative, process_down)
         rho = (price_up - price_down) / (2 * epsilon)
         return rho
-    
+    def get_theta(self, price: float, delta: float, gamma: float, vega: float, derivative: AbstractOption, market: Market) -> float:
+        """
+        Calcule le theta du produit à partir des EDP des modèles Black-Scholes et Heston.
+
+        Parameters:
+            price (float): Prix actuel du produit.
+            delta (float): Delta du produit.
+            gamma (float): Gamma du produit.
+            vega (float): Vega du produit.
+            derivative (AbstractOption): Produit dérivé à évaluer.
+            market (Market): Données de marché associées.
+
+        Returns:
+            float: Valeur du theta.
+        """
+        S = market.underlying_asset.last_price
+        r = market.get_rate(1/365)
+        if hasattr(derivative, "strike"):
+            K = derivative.strike
+        else:
+            K = market.underlying_asset.last_price
+        sigma = market.get_volatility(K, derivative.maturity)
+
+        if self.model.name == "BLACK_SCHOLES":
+            theta = -0.5 * sigma**2 * S**2 * gamma - r * S * delta + r * price
+        elif self.model.name == "HESTON":
+            heston_process = self.get_stochastic_process(derivative, market)    
+            kappa, theta_v, sigma_v, rho = heston_process.kappa, heston_process.theta, heston_process.sigma, heston_process.rho
+            v0 = sigma**2
+            theta = (-0.5 * v0 * S**2 * gamma - r * S * delta + r * price
+                     - kappa * (theta_v - v0) * vega
+                     - 0.5 * sigma_v**2 * vega)
+        else:
+            raise ValueError("Modèle non supporté pour le calcul du theta.")
+
+        return theta
 

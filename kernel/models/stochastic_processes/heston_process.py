@@ -2,22 +2,46 @@ from kernel.models.stochastic_processes.stochastic_process import StochasticProc
 import numpy as np
 from typing import Tuple
 
-class HestonProcess(TwoFactorStochasticProcess): #pas encore bien implementé, à revoir 
-    def __init__(self, S0, V0, r, kappa, theta, xi, rho, T, nb_steps):
+class HestonProcess(TwoFactorStochasticProcess):
+    """
+    Class representing a Heston stochastic volatility process under the risk-neutral measure Q.
+    """
+
+    def __init__(self, S0: float, v0: float, T: float, nb_steps: int, drift: np.ndarray,
+                 kappa: float, theta: float, sigma: float, rho: float):
+        """
+        Initializes the Heston process.
+
+        Parameters:
+            S0 (float): Initial spot price
+            v0 (float): Initial variance
+            T (float): Maturity
+            nb_steps (int): Number of steps
+            drift (np.ndarray): Array of drift rates under Q (risk-free or forward rates)
+            kappa (float): Mean reversion speed of variance
+            theta (float): Long-run variance mean
+            sigma (float): Volatility of volatility
+            rho (float): Correlation between spot and volatility processes
+        """
         super().__init__(S0, T, nb_steps, nb_factors=2)
-        self.V0 = V0
-        self.r = r
+        self.v0 = v0
+        self.mu = drift
         self.kappa = kappa
         self.theta = theta
-        self.xi = xi
+        self.sigma = sigma
         self.rho = rho
 
-    def get_drift(self, t, x):
-        return self.r * x
-    def get_vol_drift(self, t, v):
+    def get_drift(self, t: int, x: np.ndarray) -> np.ndarray:
+        """Drift of the spot price under the risk-neutral measure Q."""
+        return self.mu[t] * x
+
+    def get_vol_drift(self, t: int, v: np.ndarray) -> np.ndarray:
+        """Drift of the variance under Q (mean reversion component)."""
         return self.kappa * (self.theta - v)
-    def get_vol_vol(self, t, v):
-        return self.xi * np.sqrt(np.maximum(v, 0))
+
+    def get_vol_vol(self, t: int, v: np.ndarray) -> np.ndarray:
+        """Volatility of the volatility (variance process)."""
+        return self.sigma * np.sqrt(np.maximum(v, 0))  # Ensure positivity
     def get_random_increments(self, nb_paths: int, seed: int = 4012) -> Tuple[np.ndarray, np.ndarray]:
         """
         Generates the two correlated brownian motions of the Heston process with the Cholesky decomposition.

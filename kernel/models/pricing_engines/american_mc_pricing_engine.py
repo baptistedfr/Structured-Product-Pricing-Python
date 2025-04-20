@@ -33,12 +33,13 @@ class AmericanMCPricingEngine(MCPricingEngine):
         gamma = self.get_gamma(derivative)
         rho = self.get_rho(derivative)
         vega = self.get_vega(derivative)
-
+        theta = self.get_theta(price=price, delta=delta, gamma=gamma, vega=vega, derivative=derivative, market=self.market) * derivative.position   
         result.price = price
         result.set_greek("delta", delta)
         result.set_greek("gamma", gamma)
         result.set_greek("rho", rho)
         result.set_greek("vega", vega)
+        result.set_greek("theta", theta)
 
 
         return result
