@@ -4,8 +4,6 @@ from typing import Dict, Optional,List
 @dataclass
 class PricingResults:
     price: Optional[float] = None
-    std_dev: Optional[float] = None
-    confidence_level: float = 0.95
     greeks: Dict[str, float] = field(default_factory=dict)
     coupon_callable: Optional[float] = None
     rate :Optional[float] = None
@@ -41,11 +39,6 @@ class PricingResults:
     def get_aggregated_results(results: List["PricingResults"]) -> "PricingResults":
         aggregated = PricingResults()
         aggregated.price = sum(r.price for r in results if r.price is not None)
-
-    # Agrégation naïve des écarts types (pas statistiquement rigoureuse sans corrélation)
-        std_devs = [r.std_dev for r in results if r.std_dev is not None]
-        if std_devs:
-            aggregated.std_dev = sum(std_devs) / len(std_devs) # moyenne des std dev
 
     # Agrégation des grecs 
         all_greeks = {}
