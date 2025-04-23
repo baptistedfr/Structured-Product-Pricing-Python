@@ -10,13 +10,13 @@ class DayCounter:
 
         delta_days = (end_date - start_date).days
 
-        if self.convention == CalendarConvention.ACT_360:
+        if self.convention == CalendarConvention.ACT_360.value:
             return delta_days / 360.0
-        elif self.convention == CalendarConvention.ACT_365:
+        elif self.convention == CalendarConvention.ACT_365.value:
             return delta_days / 365.0
-        elif self.convention == CalendarConvention.ACT_ACT:
+        elif self.convention == CalendarConvention.ACT_ACT.value:
             return self._actual_actual(start_date, end_date)
-        elif self.convention == CalendarConvention.THIRTY_360:
+        elif self.convention == CalendarConvention.THIRTY_360.value:
             return self._thirty_360(start_date, end_date)
         else:
             raise NotImplementedError(f"Convention {self.convention} not implemented")
