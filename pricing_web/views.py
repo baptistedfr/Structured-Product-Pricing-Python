@@ -11,6 +11,8 @@ from kernel.pricing_launcher import PricingLauncher
 from utils.pricing_settings import PricingSettings
 from .utilities import *
 from utils.day_counter import DayCounter
+from kernel.products.rate.bond import *
+from kernel.products.rate.vanilla_swap import InterestRateSwap
 from datetime import datetime
 # Lecture des tickers partagée pour éviter les répétitions
 def get_tickers():
@@ -25,7 +27,7 @@ def get_year_fraction(calendar_convention, start_date = datetime.now(), end_date
     """
     Cette fonction calcule la fraction d'année entre deux dates selon la convention de calendrier spécifiée.
     """
-    day_counter = DayCounter(calendar_convention)
+    day_counter = DayCounter(calendar_convention.value)
     return day_counter.get_year_fraction(start_date, end_date)
 
 def get_ticker_data():
@@ -153,7 +155,6 @@ def calculate_price_options(request):
     Cette vue sert à calculer le prix d'une option en fonction des paramètres reçus dans la requête GET.
     Elle utilise les paramètres de l'option pour calculer son prix et ses payoffs.
     """
-    constant_vol = float(request.GET.get('constant_vol', 0)) if request.GET.get('constant_vol') else None
     calendar_convention = CalendarConvention.ACT_360
 
     maturity_date = request.GET.get('maturity')
@@ -220,7 +221,16 @@ def calculate_price_options(request):
     results = launcher.get_results(option)
 
     price = results.price
-    greeks = results.greeks
+    try:
+        greeks = results.greeks
+    except : 
+        greeks = {
+            'delta': None,
+            'gamma': None,
+            'vega': None,
+            'theta': None,
+            'rho': None
+        }
 
     # Générer le graphique de payoff
     prices = np.linspace(0.5 * float(request.GET.get('strike', 100)), 1.5 * float(request.GET.get('strike', 100)), 100)
@@ -555,18 +565,44 @@ def calculate_bond_coupon(request):
     Cette vue sert à calculer le coupon d'un autocall en fonction des paramètres reçus dans la requête GET.
     """
     obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
-    
-    calendar_convention = CalendarConvention.ACT_360
+    calendar_convention = CALENDAR_CONVENTION.get(request.GET.get('calendar_convention'))
 
-    maturity_date = request.GET.get('maturity')
-    maturity = get_year_fraction(calendar_convention, 
-                                 datetime.now(), 
-                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
-    
-    ytm = 3.5  # Exemple de taux de rendement à l'échéance (YTM) pour le calcul du coupon
 
+    maturity_date = datetime.strptime(request.GET.get('maturity'), "%Y-%m-%d")
+    emission_date = datetime.strptime(request.GET.get('emission'), "%Y-%m-%d")
+    value_date = datetime.strptime(request.GET.get('achat'), "%Y-%m-%d")
+
+    notional = float(request.GET.get('notionel', 100))
+    coupon_rate = float(request.GET.get('coupon', 5.0))/100 if request.GET.get('coupon') else None
+    price = float(request.GET.get('price', 100)) if request.GET.get('price') else None
+    bond = CouponBond(
+        notional=notional,
+        emission=emission_date,
+        maturity=maturity_date,
+        coupon_rate=coupon_rate,
+        frequency=obs_frequency,
+        calendar_convention=calendar_convention,
+        price=price
+    )
+    settings_dict = {
+        "underlying_name": "SPX",
+        "rate_curve_type": RateCurveType.RF_US_TREASURY,
+        "interpolation_type": InterpolationType.SVENSSON,
+        "volatility_surface_type": VolatilitySurfaceType.SVI,
+        "obs_frequency": obs_frequency,
+        "day_count_convention": calendar_convention,
+        "pricing_engine_type": PricingEngineType.RATE,
+        "nb_paths": 100,
+        "nb_steps": 1000,
+        "random_seed": 4012,
+    }
+    settings = PricingSettings(**settings_dict)
+    settings.valuation_date = value_date
+    launcher_bond = PricingLauncher(settings)
+    results_bond = launcher_bond.get_results(bond)
+    ytm = results_bond.rate * 100
     return JsonResponse({
-        'ytm': round(ytm, 2),
+        'ytm': round(ytm, 4),
     })
 
 # Calculer le prix d'un bond
@@ -575,15 +611,42 @@ def calculate_bond_price(request):
     Cette vue sert à calculer le coupon d'un bond en fonction des paramètres reçus dans la requête GET.
     """
     obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
-    
-    calendar_convention = CalendarConvention.ACT_360
+    calendar_convention = CALENDAR_CONVENTION.get(request.GET.get('calendar_convention'))
 
-    maturity_date = request.GET.get('maturity')
-    maturity = get_year_fraction(calendar_convention, 
-                                 datetime.now(), 
-                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
-    
-    price = 1000
+
+    maturity_date = datetime.strptime(request.GET.get('maturity'), "%Y-%m-%d")
+    emission_date = datetime.strptime(request.GET.get('emission'), "%Y-%m-%d")
+    value_date = datetime.strptime(request.GET.get('achat'), "%Y-%m-%d")
+
+    notional = float(request.GET.get('notionel', 100))
+    coupon_rate = float(request.GET.get('coupon', 5.0))/100 if request.GET.get('coupon') else None
+    ytm = float(request.GET.get('ytm', 100))/100 if request.GET.get('ytm') else None
+    bond = CouponBond(
+        notional=notional,
+        emission=emission_date,
+        maturity=maturity_date,
+        coupon_rate=coupon_rate,
+        frequency=obs_frequency,
+        calendar_convention=calendar_convention,
+        ytm=ytm
+    )
+    settings_dict = {
+        "underlying_name": "SPX",
+        "rate_curve_type": RateCurveType.RF_US_TREASURY,
+        "interpolation_type": InterpolationType.SVENSSON,
+        "volatility_surface_type": VolatilitySurfaceType.SVI,
+        "obs_frequency": obs_frequency,
+        "day_count_convention": calendar_convention,
+        "pricing_engine_type": PricingEngineType.RATE,
+        "nb_paths": 100,
+        "nb_steps": 1000,
+        "random_seed": 4012,
+    }
+    settings = PricingSettings(**settings_dict)
+    settings.valuation_date = value_date
+    launcher_bond = PricingLauncher(settings)
+    results_bond = launcher_bond.get_results(bond)
+    price = results_bond.price
     return JsonResponse({
         'price': round(price, 2),
     })
@@ -615,16 +678,40 @@ def calculate_swap_rate(request):
     Cette vue sert à calculer le rate d'un swap en fonction des paramètres reçus dans la requête GET.
     """
     obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
-    
-    calendar_convention = CalendarConvention.ACT_360
+    calendar_convention = CALENDAR_CONVENTION.get(request.GET.get('calendar_convention'))
 
-    maturity_date = request.GET.get('maturity')
-    maturity = get_year_fraction(calendar_convention, 
-                                 datetime.now(), 
-                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
-    
-    rate = 3.9  # Exemple de taux swap pour le calcul du coupon
-    print(rate)
+
+    maturity_date = datetime.strptime(request.GET.get('maturity'), "%Y-%m-%d")
+    emission_date = datetime.strptime(request.GET.get('emission'), "%Y-%m-%d")
+    value_date = datetime.strptime(request.GET.get('achat'), "%Y-%m-%d")
+
+    notional = float(request.GET.get('notionel', 100))
+    price = float(request.GET.get('price', 100)) if request.GET.get('price') else None
+    swap = InterestRateSwap(
+        notional=notional,
+        emission=emission_date,
+        maturity=maturity_date,
+        frequency=obs_frequency,
+        calendar_convention=calendar_convention,
+        price=price,
+    )
+    settings_dict = {
+        "underlying_name": "SPX",
+        "rate_curve_type": RateCurveType.RF_US_TREASURY,
+        "interpolation_type": InterpolationType.SVENSSON,
+        "volatility_surface_type": VolatilitySurfaceType.SVI,
+        "obs_frequency": obs_frequency,
+        "day_count_convention": calendar_convention,
+        "pricing_engine_type": PricingEngineType.RATE,
+        "nb_paths": 100,
+        "nb_steps": 1000,
+        "random_seed": 4012,
+    }
+    settings = PricingSettings(**settings_dict)
+    settings.valuation_date = value_date
+    launcher_swap = PricingLauncher(settings)
+    swap_results = launcher_swap.get_results(swap)
+    rate = swap_results.rate * 100
     return JsonResponse({
         'rate': round(rate, 2),
     })
@@ -635,15 +722,40 @@ def calculate_swap_price(request):
     Cette vue sert à calculer le prix d'un swap en fonction des paramètres reçus dans la requête GET.
     """
     obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
-    
-    calendar_convention = CalendarConvention.ACT_360
+    calendar_convention = CALENDAR_CONVENTION.get(request.GET.get('calendar_convention'))
 
-    maturity_date = request.GET.get('maturity')
-    maturity = get_year_fraction(calendar_convention, 
-                                 datetime.now(), 
-                                 datetime.strptime(maturity_date, '%Y-%m-%d'))
-    
-    price = 18
+
+    maturity_date = datetime.strptime(request.GET.get('maturity'), "%Y-%m-%d")
+    emission_date = datetime.strptime(request.GET.get('emission'), "%Y-%m-%d")
+    value_date = datetime.strptime(request.GET.get('achat'), "%Y-%m-%d")
+
+    notional = float(request.GET.get('notionel', 100))
+    rate = float(request.GET.get('rate', 100)) if request.GET.get('rate') else None
+    swap = InterestRateSwap(
+        notional=notional,
+        emission=emission_date,
+        maturity=maturity_date,
+        frequency=obs_frequency,
+        calendar_convention=calendar_convention,
+        fixed_rate=rate,
+    )
+    settings_dict = {
+        "underlying_name": "SPX",
+        "rate_curve_type": RateCurveType.RF_US_TREASURY,
+        "interpolation_type": InterpolationType.SVENSSON,
+        "volatility_surface_type": VolatilitySurfaceType.SVI,
+        "obs_frequency": obs_frequency,
+        "day_count_convention": calendar_convention,
+        "pricing_engine_type": PricingEngineType.RATE,
+        "nb_paths": 100,
+        "nb_steps": 1000,
+        "random_seed": 4012,
+    }
+    settings = PricingSettings(**settings_dict)
+    settings.valuation_date = value_date
+    launcher_swap = PricingLauncher(settings)
+    swap_results = launcher_swap.get_results(swap)
+    price = swap_results.price
     return JsonResponse({
         'price': round(price, 2),
     })
