@@ -82,7 +82,7 @@ class InterestRateSwap(AbstractRateProduct):
         annuities = self.get_annuities()
         if annuities == 0:
             raise ZeroDivisionError("Annuities égales à 0, par rate indéterminé")
-    
+
         return self.float_leg_value() / (self.notional * annuities)
     
 
@@ -96,8 +96,6 @@ class InterestRateSwap(AbstractRateProduct):
 
         self.dates = self.generate_payment_dates(self.interval)
         if self.fixed_rate is None:
-            if self.price is None:
-                raise ValueError("Le prix doit être renseigné, il n'est pas")
             self.fixed_rate = self.par_rate()
         if self.price is None:
             self.price = self.present_value()
