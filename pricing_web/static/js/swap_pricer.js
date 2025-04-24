@@ -18,7 +18,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const todayDate = new Date().toISOString().split('T')[0];
     EmissionInput.value = todayDate;
-    achatInput.value = todayDate;
+
+    var achatDate = new Date(today.setFullYear(today.getFullYear() - 2));
+    var formattedAchat = achatDate.toISOString().split('T')[0];
+
+    achatInput.value = formattedAchat;
 
     function toggleManualCouponInput() {
         console.log("hr")

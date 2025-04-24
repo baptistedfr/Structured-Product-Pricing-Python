@@ -13,7 +13,7 @@
             <div class="d-flex justify-content-center gap-4 mt-2">
                 <div class="form-check form-check-inline fs-5">
                     <input class="form-check-input" type="radio" name="pricing_mode" id="modeCoupon" value="coupon" checked>
-                    <label class="form-check-label" for="modeCoupon">Calculer le taux fixe</label>
+                    <label class="form-check-label" for="modeCoupon">Calculer le taux fixe pour un prix nul</label>
                 </div>
                 <div class="form-check form-check-inline fs-5">
                     <input class="form-check-input" type="radio" name="pricing_mode" id="modePricing" value="pricing">
@@ -29,11 +29,11 @@
             </div>
             <div class="col-md-4 mb-3" id="price-container" style="display: none;">
                 <label for="price" class="form-label">Prix (€)</label>
-                <input type="number" class="form-control" id="price" name="price" value="0">
+                <input type="number" class="form-control" id="price" name="price" value="0" readonly>
             </div>
             <div class="col-md-4 mb-3" id="rate-container" style="display: none;">
                 <label for="rate" class="form-label">Taux Fixe (%)</label>
-                <input type="number" class="form-control" id="rate" name="rate" value="3.5">
+                <input class="form-control" id="rate" name="rate" value="3">
             </div>
         </div>
         

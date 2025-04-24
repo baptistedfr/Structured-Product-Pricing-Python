@@ -20,7 +20,7 @@ def get_tickers():
     Cette fonction charge une fois les tickers depuis le fichier 'underlying_data.xlsx'.
     Cela évite de répéter cette opération dans chaque vue, améliorant ainsi les performances.
     """
-    df_tickers = pd.read_excel('data/underlying_data.xlsx')
+    df_tickers = pd.read_excel('data/underlying_data.xlsx').iloc[1:,:]
     return df_tickers['Ticker'].unique().tolist()
 
 def get_year_fraction(calendar_convention, start_date = datetime.now(), end_date = datetime.now()):
@@ -66,10 +66,10 @@ def get_options():
             {'value': 'EuropeanPutOption', 'label': 'Put'}
         ],
         'path_dependent_options': [
-            {'value': 'AmericanCallOption', 'label': 'American Call'},
-            {'value': 'AmericanPutOption', 'label': 'American Put'},
-            {'value': 'BermudeanCallOption', 'label': 'Bermudean Call'},
-            {'value': 'BermudeanPutOption', 'label': 'Bermudean Put'},
+            # {'value': 'AmericanCallOption', 'label': 'American Call'},
+            # {'value': 'AmericanPutOption', 'label': 'American Put'},
+            # {'value': 'BermudeanCallOption', 'label': 'Bermudean Call'},
+            # {'value': 'BermudeanPutOption', 'label': 'Bermudean Put'},
             {'value': 'AsianCallOption', 'label': 'Asian Call'},
             {'value': 'AsianPutOption', 'label': 'Asian Put'},
             {'value': 'LookbackCallOption', 'label': 'Lookback Call'},
@@ -122,6 +122,7 @@ def pricer_view(request):
             {'value': 'svi', 'label': 'SVI'},
             {'value': 'ssvi', 'label': 'SSVI'},
             {'value': 'local', 'label': 'LocalVolatility'},
+             {'value': 'heston', 'label': 'Heston'},
         ],
         'vanilla_options': json.dumps(options_data['vanilla_options']),
         'path_dependent_options': json.dumps(options_data['path_dependent_options']),
@@ -198,8 +199,13 @@ def calculate_price_options(request):
         coupon=float(request.GET.get('coupon', None)) if request.GET.get('coupon') else None,
         exercise_times=exercise_times
     )
-
-    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+    vol_type = request.GET.get('vol_type')
+    if vol_type == 'heston':
+        model = Model.HESTON
+        volatility_surface_type = VolatilitySurfaceType.SVI
+    else:
+        model = Model.BLACK_SCHOLES
+        volatility_surface_type = VOL_CONV.get(vol_type)
 
     settings_dict = {
         "underlying_name": request.GET.get('ticker'),
@@ -208,7 +214,7 @@ def calculate_price_options(request):
         "volatility_surface_type": volatility_surface_type,
         "obs_frequency": None,
         "day_count_convention": calendar_convention,
-        "model": Model.BLACK_SCHOLES,
+        "model": model,
         "pricing_engine_type": pricing_engine_type,
         "nb_paths": int(request.GET.get('nb_steps', 100)),
         "nb_steps": 1000,
@@ -260,6 +266,7 @@ def strategies_view(request):
             {'value': 'svi', 'label': 'SVI'},
             {'value': 'ssvi', 'label': 'SSVI'},
             {'value': 'local', 'label': 'LocalVolatility'},
+            {'value': 'heston', 'label': 'Heston'},
         ],
     }
     return render(request, 'options_strategies.html', context)
@@ -286,7 +293,13 @@ def calculate_price_strategy(request):
         maturity_calendar=float(request.GET.get('maturity_calendar', None))  # Maturité pour CalendarSpread (optionnel)
     )
 
-    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+    vol_type = request.GET.get('vol_type')
+    if vol_type == 'heston':
+        model = Model.HESTON
+        volatility_surface_type = VolatilitySurfaceType.SVI
+    else:
+        model = Model.BLACK_SCHOLES
+        volatility_surface_type = VOL_CONV.get(vol_type)
 
     settings_dict = {
         "underlying_name": request.GET.get('ticker'),
@@ -295,7 +308,7 @@ def calculate_price_strategy(request):
         "volatility_surface_type": volatility_surface_type,
         "obs_frequency": None,
         "day_count_convention": calendar_convention,
-        "model": Model.BLACK_SCHOLES,
+        "model": model,
         "pricing_engine_type": PricingEngineType.MC,
         "nb_paths": int(request.GET.get('nb_steps', 100)),
         "nb_steps": 1000,
@@ -334,6 +347,7 @@ def autocall_pricing_view(request):
             {'value': 'svi', 'label': 'SVI'},
             {'value': 'ssvi', 'label': 'SSVI'},
             {'value': 'local', 'label': 'LocalVolatility'},
+            {'value': 'heston', 'label': 'Heston'},
         ],
         'observation_frequencies': [
             {'value': 'annual', 'label': 'Annuelles'},
@@ -369,7 +383,13 @@ def calculate_autocall_coupon(request):
         is_security=request.GET.get('securityCheckbox', False) == 'on'
     )
 
-    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+    vol_type = request.GET.get('vol_type')
+    if vol_type == 'heston':
+        model = Model.HESTON
+        volatility_surface_type = VolatilitySurfaceType.SVI
+    else:
+        model = Model.BLACK_SCHOLES
+        volatility_surface_type = VOL_CONV.get(vol_type)
 
     settings_dict = {
         "underlying_name": request.GET.get('ticker'),
@@ -378,7 +398,7 @@ def calculate_autocall_coupon(request):
         "volatility_surface_type": volatility_surface_type,
         "obs_frequency": obs_frequency,
         "day_count_convention": calendar_convention,
-        "model": Model.BLACK_SCHOLES,
+        "model": model,
         "pricing_engine_type": PricingEngineType.CALLABLE_MC,
         "nb_paths": int(request.GET.get('nb_steps', 100)),
         "nb_steps": 1000,
@@ -429,7 +449,13 @@ def calculate_autocall_price(request):
         is_security=request.GET.get('securityCheckbox', False) == 'on',
         coupon_rate = float(request.GET.get('coupon', 5.0)) if request.GET.get('coupon') else None
     )
-    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+    vol_type = request.GET.get('vol_type')
+    if vol_type == 'heston':
+        model = Model.HESTON
+        volatility_surface_type = VolatilitySurfaceType.SVI
+    else:
+        model = Model.BLACK_SCHOLES
+        volatility_surface_type = VOL_CONV.get(vol_type)
 
     settings_dict = {
         "underlying_name": request.GET.get('ticker'),
@@ -438,7 +464,7 @@ def calculate_autocall_price(request):
         "volatility_surface_type": volatility_surface_type,
         "obs_frequency": obs_frequency,
         "day_count_convention": calendar_convention,
-        "model": Model.BLACK_SCHOLES,
+        "model": model,
         "pricing_engine_type": PricingEngineType.CALLABLE_MC,
         "nb_paths": int(request.GET.get('nb_steps', 100)),
         "nb_steps": 1000,
@@ -471,6 +497,7 @@ def participation_products_view(request):
             {'value': 'svi', 'label': 'SVI'},
             {'value': 'ssvi', 'label': 'SSVI'},
             {'value': 'local', 'label': 'LocalVolatility'},
+            {'value': 'heston', 'label': 'Heston'},
         ],
     }
     return render(request, 'participation_products.html', context)
@@ -499,7 +526,13 @@ def calculate_participation_products(request):
         leverage=float(request.GET.get('leverage', None))/100,
     )
 
-    volatility_surface_type = VOL_CONV.get(request.GET.get('vol_type'))
+    vol_type = request.GET.get('vol_type')
+    if vol_type == 'heston':
+        model = Model.HESTON
+        volatility_surface_type = VolatilitySurfaceType.SVI
+    else:
+        model = Model.BLACK_SCHOLES
+        volatility_surface_type = VOL_CONV.get(vol_type)
 
     settings_dict = {
         "underlying_name": request.GET.get('ticker'),
@@ -508,7 +541,7 @@ def calculate_participation_products(request):
         "volatility_surface_type": volatility_surface_type,
         "obs_frequency": None,
         "day_count_convention": calendar_convention,
-        "model": Model.BLACK_SCHOLES,
+        "model": model,
         "pricing_engine_type": PricingEngineType.MC,
         "nb_paths": int(request.GET.get('nb_steps', 100)),
         "nb_steps": 1000,
@@ -686,14 +719,14 @@ def calculate_swap_rate(request):
     value_date = datetime.strptime(request.GET.get('achat'), "%Y-%m-%d")
 
     notional = float(request.GET.get('notionel', 100))
-    price = float(request.GET.get('price', 100)) if request.GET.get('price') else None
+   
     swap = InterestRateSwap(
         notional=notional,
         emission=emission_date,
         maturity=maturity_date,
         frequency=obs_frequency,
         calendar_convention=calendar_convention,
-        price=price,
+        price = 0
     )
     settings_dict = {
         "underlying_name": "SPX",
@@ -724,13 +757,13 @@ def calculate_swap_price(request):
     obs_frequency = OBS_FREQ.get(request.GET.get('obs_frequency'))
     calendar_convention = CALENDAR_CONVENTION.get(request.GET.get('calendar_convention'))
 
-
     maturity_date = datetime.strptime(request.GET.get('maturity'), "%Y-%m-%d")
     emission_date = datetime.strptime(request.GET.get('emission'), "%Y-%m-%d")
     value_date = datetime.strptime(request.GET.get('achat'), "%Y-%m-%d")
 
     notional = float(request.GET.get('notionel', 100))
-    rate = float(request.GET.get('rate', 100)) if request.GET.get('rate') else None
+    rate = float(request.GET.get('rate', 100))/100 if request.GET.get('rate') else None
+
     swap = InterestRateSwap(
         notional=notional,
         emission=emission_date,
@@ -756,6 +789,7 @@ def calculate_swap_price(request):
     launcher_swap = PricingLauncher(settings)
     swap_results = launcher_swap.get_results(swap)
     price = swap_results.price
+
     return JsonResponse({
         'price': round(price, 2),
     })
