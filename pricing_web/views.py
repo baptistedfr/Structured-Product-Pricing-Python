@@ -66,10 +66,10 @@ def get_options():
             {'value': 'EuropeanPutOption', 'label': 'Put'}
         ],
         'path_dependent_options': [
-            # {'value': 'AmericanCallOption', 'label': 'American Call'},
-            # {'value': 'AmericanPutOption', 'label': 'American Put'},
-            # {'value': 'BermudeanCallOption', 'label': 'Bermudean Call'},
-            # {'value': 'BermudeanPutOption', 'label': 'Bermudean Put'},
+            {'value': 'AmericanCallOption', 'label': 'American Call'},
+            {'value': 'AmericanPutOption', 'label': 'American Put'},
+            {'value': 'BermudeanCallOption', 'label': 'Bermudean Call'},
+            {'value': 'BermudeanPutOption', 'label': 'Bermudean Put'},
             {'value': 'AsianCallOption', 'label': 'Asian Call'},
             {'value': 'AsianPutOption', 'label': 'Asian Put'},
             {'value': 'LookbackCallOption', 'label': 'Lookback Call'},
